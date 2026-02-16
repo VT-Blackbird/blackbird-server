@@ -1,0 +1,41 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.env
+venv/
+.env
+.env.*
+
+# PyCharm / IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+*.log
+
+# VSCode (if anyone uses it)
+.vscode/
+
+# FastAPI / logs / runtime files
+*.sqlite3
+*.db
+*.pid
+*.sock
+
+# Bytecode, caches, coverage reports
+*.coverage
+.coverage.*
+htmlcov/
+*.pytest_cache/
+
+# Misc
+*.swp
