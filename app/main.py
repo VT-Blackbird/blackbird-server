@@ -28,7 +28,7 @@ app.add_middleware(
 # Example root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Welcome to team Blackbird!!"}
+    return {"message": "Welcome to the team Blackbird server!"}
 
 # Include routers from your routes folder (to be added later)
 # app.include_router(search.router, prefix="/search", tags=["Search"])

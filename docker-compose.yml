@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: blackbird-backend
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - .:/app
+
+    environment:
+      PYTHONPATH: /app
+
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
