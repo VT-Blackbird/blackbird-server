@@ -14,6 +14,13 @@ It provides the API endpoints, business logic, and services needed for the appli
 - Environment variable support via `.env`
 - Dockerized for consistent development and deployment
 
+## Prerequisites
+
+Before running the backend, ensure you have the following installed:
+
+- **Docker Engine** (Linux) or **Docker Desktop** (Windows / Mac)
+  - https://docs.docker.com/get-docker/
+
 ---
 
 ## Project Structure
@@ -21,22 +28,52 @@ It provides the API endpoints, business logic, and services needed for the appli
 ```plaintext
 server/
 │
-├── app/                      # Main application package
-│   ├── main.py               # FastAPI entrypoint
-│   ├── routes/               # API endpoints (controllers)
-│   └── services/             # Business logic layer
+├── app/                          # Main backend application package
+│   │
+│   ├── main.py                   # FastAPI application entrypoint
+│   │
+│   ├── api/                      # API layer (HTTP interface)
+│   │   └── routes/               # Route definitions / controllers
+│   │
+│   ├── schemas/                  # Pydantic request/response models
+│   │   └── search_request.py     # Example request schema
+│   │
+│   ├── models/                   # Database ORM models (tables/entities)
+│   │
+│   ├── repositories/             # Data access layer (DB queries & persistence)
+│   │
+│   ├── services/                 # Business logic layer
+│   │                              # Orchestrates repositories, ML, and utilities
+│   │
+│   ├── db/                       # Database configuration and session management
+│   │
+│   ├── ml/                       # Machine learning & sentiment analysis logic
+│   │                              # Models, inference pipelines, feature processing
+│   │
+│   ├── workers/                  # Background jobs (scraping, async processing)
+│   │                              # Designed for scheduled or queue-based tasks
+│   │
+│   └── utils/                    # Shared helper utilities and common functions
 │
-├── .env                      # Environment variables (not committed)
-├── requirements.txt          # Python dependencies
-└── .gitignore
+├── tests/                        # Pytest test suite
+│   └── test_main.py              # Example API test
+│
+├── docker-compose.yml            # Multi-container orchestration
+├── Dockerfile                    # Backend container definition
+├── requirements.txt              # Python dependencies
+└── README.md                     # Project documentation
+
 
 ```
 
 ## Docker
 
-- Used to ensure consistent environment regardless of operating system
+> The backend is fully containerized using Docker.  
+> Running it inside a container ensures consistent environment, avoids dependency conflicts,
+> and makes development and deployment identical across all machines.
 
 ### Docker Command Reference
+
 
 | Action | Command | Notes |
 |--------|--------|-------|

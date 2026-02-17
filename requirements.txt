@@ -1,7 +1,14 @@
+# =========================
+# Runtime dependencies
+# =========================
 fastapi==0.111.1
 uvicorn[standard]==0.23.2
+pydantic==2.8.2
+python-multipart==0.0.9
 
-pytest
-pytest-asyncio
-httpx
-python-multipart
+# =========================
+# Testing / Dev
+# =========================
+pytest==8.2.0
+pytest-asyncio==0.23.7
+httpx==0.27.0
