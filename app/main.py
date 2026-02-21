@@ -14,6 +14,7 @@ app = FastAPI(
 # Allow CORS for frontend integration (adjust origins as needed)
 origins = [
     "http://localhost:3000",  # your React frontend
+    "http://localhost:5173",    # Vite default (highly recommended)
     # Add other origins if necessary
 ]
 
