@@ -1,7 +1,12 @@
 import time
 from datetime import datetime, timezone
+
 from app.schemas.search_request import SearchRequest
-from app.schemas.search_response import SearchResponse, SearchResultItem, SearchMetrics, SentimentScores
+from app.schemas.search_response import (
+    SearchResponse,
+    SearchResultItem,
+    SentimentScores,
+)
 
 
 class SearchService:

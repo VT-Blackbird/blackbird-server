@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
+
 from app.schemas.search_request import SearchRequest
 from app.schemas.search_response import SearchResponse
-from app.services.search_service import search_service # Import the service
+from app.services.search_service import search_service  # Import the service
 
 router = APIRouter()
 
@@ -15,4 +16,7 @@ async def perform_search(request: SearchRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         # Reserve 500 for actual server crashes
-        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Search failed: {str(e)}"
+        )

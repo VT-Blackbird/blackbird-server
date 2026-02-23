@@ -2,6 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
+
 class SearchRequest(BaseModel):
     """
     Request schema for search queries coming from the frontend.
@@ -20,4 +21,7 @@ class SearchRequest(BaseModel):
         description="Maximum number of results to return"
     )
 
-    platforms: List[str] = Field(default=["Reddit", "X"], description="Which sites to scrape")
+    platforms: List[str] = Field(
+        default=["Reddit", "X"],
+        description="Which sites to scrape"
+    )
