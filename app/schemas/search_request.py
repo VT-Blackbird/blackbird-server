@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import List
 
+from pydantic import BaseModel, Field
 
 class SearchRequest(BaseModel):
     """
@@ -19,3 +19,5 @@ class SearchRequest(BaseModel):
         le=100,
         description="Maximum number of results to return"
     )
+
+    platforms: List[str] = Field(default=["Reddit", "X"], description="Which sites to scrape")

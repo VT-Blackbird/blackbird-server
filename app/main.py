@@ -2,8 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import your routes (you can create them later)
-# from app.routes import search, summary
+from app.api.routes import search
 
 app = FastAPI(
     title="Capstone Backend",
@@ -13,9 +12,10 @@ app = FastAPI(
 
 # Allow CORS for frontend integration (adjust origins as needed)
 origins = [
-    "http://localhost:3000",  # your React frontend
-    "http://localhost:5173",    # Vite default (highly recommended)
-    # Add other origins if necessary
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
@@ -31,6 +31,4 @@ app.add_middleware(
 async def root():
     return {"message": "Welcome to the team Blackbird server!"}
 
-# Include routers from your routes folder (to be added later)
-# app.include_router(search.router, prefix="/search", tags=["Search"])
-# app.include_router(summary.router, prefix="/summary", tags=["Summary"])
+app.include_router(search.router, prefix="/search", tags=["search"])
