@@ -7,7 +7,8 @@ on:
     branches: [ production, dev ]
 
 jobs:
-  lint-and-test:
+  quality-assurance:
+    name: Quality Assurance (Ruff, MyPy, Pytest)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
