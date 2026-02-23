@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from app.schemas.search_request import SearchRequest
 from app.schemas.search_response import SearchResponse, SearchResultItem, SearchMetrics, SentimentScores
 
@@ -18,7 +18,7 @@ class SearchService:
                 source="Reddit",
                 content=f"Results for {request.query}",
                 url="https://reddit.com",
-                published_at=datetime.utcnow(),
+                published_at=datetime.now(timezone.utc),
                 sentiment=SentimentScores(label="Neutral", score=0.5)
             )
         ]

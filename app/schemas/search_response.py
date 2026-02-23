@@ -14,7 +14,7 @@ class SearchMetrics(BaseModel):
 
 class SearchResultItem(BaseModel):
     id: str
-    source: str = Field(..., example="Reddit")
+    source: str = Field(..., json_schema_extra={"example": "Reddit"})
     title: Optional[str] = None
     content: str
     url: str
