@@ -31,4 +31,4 @@ app.add_middleware(
 async def root():
     return {"message": "Welcome to the team Blackbird server!"}
 
-app.include_router(search.router, prefix="/search", tags=["search"])
+app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
