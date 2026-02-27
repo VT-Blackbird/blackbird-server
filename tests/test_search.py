@@ -17,7 +17,7 @@ def test_perform_search_success():
     }
 
     # 2. Hit the endpoint (make sure the URL matches your main.py prefix)
-    response = client.post("/search/", json=payload)
+    response = client.post("/api/v1/search/", json=payload)
 
     # 3. Assertions
     assert response.status_code == 200
@@ -41,7 +41,7 @@ def test_search_validation_error():
         "limit": 5
     }
 
-    response = client.post("/search/", json=invalid_payload)
+    response = client.post("/api/v1/search/", json=invalid_payload)
 
     # Validation happens at the Schema level, so FastAPI returns 422
     assert response.status_code == 422
