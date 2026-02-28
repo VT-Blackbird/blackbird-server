@@ -7,7 +7,7 @@ from app.api.routes import search
 app = FastAPI(
     title="Capstone Backend",
     description="Backend API for aggregated search and analytics",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # Allow CORS for frontend integration (adjust origins as needed)
@@ -26,9 +26,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Example root endpoint
 @app.get("/")
 async def root():
     return {"message": "Welcome to the team Blackbird server!"}
+
 
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])

@@ -10,11 +10,7 @@ def test_perform_search_success():
     Test that a valid search request returns a 200 and the expected schema.
     """
     # 1. Define a valid request payload
-    payload = {
-        "query": "Virginia Tech",
-        "limit": 5,
-        "platforms": ["Reddit"]
-    }
+    payload = {"query": "Virginia Tech", "limit": 5, "platforms": ["Reddit"]}
 
     # 2. Hit the endpoint (make sure the URL matches your main.py prefix)
     response = client.post("/api/v1/search/", json=payload)
@@ -32,14 +28,12 @@ def test_perform_search_success():
         assert "source" in data["results"][0]
         assert "sentiment" in data["results"][0]
 
+
 def test_search_validation_error():
     """
     Test that an invalid request (empty query) returns a 422 Unprocessable Entity.
     """
-    invalid_payload = {
-        "query": "",  # This violates min_length=1
-        "limit": 5
-    }
+    invalid_payload = {"query": "", "limit": 5}  # This violates min_length=1
 
     response = client.post("/api/v1/search/", json=invalid_payload)
 

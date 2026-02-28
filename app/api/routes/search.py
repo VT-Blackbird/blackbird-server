@@ -6,6 +6,7 @@ from app.services.search_service import search_service  # Import the service
 
 router = APIRouter()
 
+
 @router.post("/", response_model=SearchResponse)
 async def perform_search(request: SearchRequest):
     # If request is invalid, FastAPI returns 422 before even getting here.
@@ -16,7 +17,4 @@ async def perform_search(request: SearchRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         # Reserve 500 for actual server crashes
-        raise HTTPException(
-            status_code=500,
-            detail=f"Search failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")

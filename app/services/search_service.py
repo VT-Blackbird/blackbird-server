@@ -24,7 +24,7 @@ class SearchService:
                 content=f"Results for {request.query}",
                 url="https://reddit.com",
                 published_at=datetime.now(timezone.utc),
-                sentiment=SentimentScores(label="Neutral", score=0.5)
+                sentiment=SentimentScores(label="Neutral", score=0.5),
             )
         ]
 
@@ -33,7 +33,7 @@ class SearchService:
         return SearchResponse(
             total_count=len(mock_results),
             execution_time_ms=round(execution_time, 2),
-            results=mock_results
+            results=mock_results,
         )
 
 
