@@ -1,12 +1,13 @@
 import asyncio
+import traceback
 from datetime import datetime
 
+from scrapers.news_scraper import NewsScraper
+
+from app.workers.core.query import Query  # if you created one
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.social_scraper import SocialScraper
-from scrapers.news_scraper import NewsScraper
-from app.workers.core.query import Query   # if you created one
 
-import traceback
 # -----------------------------
 # USER CONFIGURATION
 # -----------------------------
@@ -16,20 +17,24 @@ QUERIES = [
     Query(text="vibe coding"),
 ]
 
-#No proxies implemented yet, but you can add them here if needed
+# No proxies implemented yet, but you can add them here if needed
 # country_code = "US"     # User can change this to FR, DE, GB, etc.
-PROXIES = [{
-        'server':"23.95.150.145:6114",    # enter your password
-        'username':"glsdbmdq",
-        'password':"b0p2nqm0pc47",
-        'region':"US", #generally country
-        'language': "en-US",
-    }, {
-        'server': "198.23.239.134:6540",
-        'username':"glsdbmdq",
-        'password':"b0p2nqm0pc47",
-        'region':"US", 'language': "en-US",
-}]
+PROXIES = [
+    {
+        "server": "23.95.150.145:6114",  # enter your password
+        "username": "glsdbmdq",
+        "password": "b0p2nqm0pc47",
+        "region": "US",  # generally country
+        "language": "en-US",
+    },
+    {
+        "server": "198.23.239.134:6540",
+        "username": "glsdbmdq",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US",
+    },
+]
 # # PROXIES = None #disable proxies for now, not fully implemented yet
 # 23.95.150.145:6114:glsdbmdq:b0p2nqm0pc47
 # 198.23.239.134:6540:glsdbmdq:b0p2nqm0pc47
@@ -44,17 +49,22 @@ USER_AGENT = (
 # Runner
 # -----------------------------
 
+
 async def run_scraper():
-    scrapers = [NewsScraper(
-        proxies=PROXIES,
-        user_agent=USER_AGENT,
-    ), SocialScraper(
-        proxies=PROXIES,
-        user_agent=USER_AGENT,
-    ), GovScraper(
-        proxies=PROXIES,
-        user_agent=USER_AGENT,
-    )]
+    scrapers = [
+        NewsScraper(
+            proxies=PROXIES,
+            user_agent=USER_AGENT,
+        ),
+        SocialScraper(
+            proxies=PROXIES,
+            user_agent=USER_AGENT,
+        ),
+        GovScraper(
+            proxies=PROXIES,
+            user_agent=USER_AGENT,
+        ),
+    ]
 
     all_results = []
 
@@ -67,7 +77,7 @@ async def run_scraper():
             await scraper.setup()
             try:
                 proxy = scraper.get_curr_proxy()
-                results = await scraper.run(query, proxy['language'], proxy['region'])
+                results = await scraper.run(query, proxy["language"], proxy["region"])
                 all_results.extend(results or [])
 
             except Exception as e:

@@ -1,7 +1,8 @@
 from app.workers.core.parent_scraper import ParentScraper
 
+
 class GovScraper(ParentScraper):
-    #TODO - implement handling of multiple URLS
+    # TODO - implement handling of multiple URLS
     BASE_URL = "temp"
 
     def build_url(self, query, language, region):

@@ -1,12 +1,15 @@
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
 from app.workers.core.browser_manager import BrowserManager
 from app.workers.core.proxy_manager import ProxyManager
 from app.workers.core.utils import random_delay, save_json
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-#=============================================
+
+
+# =============================================
 # ParentScraper: Base class for all scrapers,
-#  handles browser setup, proxy management, 
+#  handles browser setup, proxy management,
 # and common scraping tasks.
-#=============================================
+# =============================================
 class ParentScraper:
     # initializes parent scraper, optional proxies and user agent
     def __init__(self, proxies=None, user_agent=None):
@@ -20,11 +23,11 @@ class ParentScraper:
 
         self.user_agent = user_agent
 
-    #Setup browser with proxy and user agent 
+    # Setup browser with proxy and user agent
     async def setup(self):
-        if self.browser: 
-            return # If already set up
-        
+        if self.browser:
+            return  # If already set up
+
         self.curr_proxy = self.proxy_manager.get_proxy()
 
         self.browser = await self.browser_manager.launch(self.curr_proxy)
@@ -33,23 +36,25 @@ class ParentScraper:
             user_agent=self.user_agent
         )
 
-        self.page = await self.context.new_page() #Pagination
+        self.page = await self.context.new_page()  # Pagination
 
-    #Closes browser and cleans up resources
+    # Closes browser and cleans up resources
     async def close(self):
         if self.page:
             await self.page.close()
         if self.context:
             await self.context.close()
         if self.browser:
-            await self.browser.close()    
+            await self.browser.close()
         await self.browser_manager.close()
-    # Navigates to a URL and waits for the DOM to load, with random delay to mimic human behavior
 
-    #ret boolean if successful or not
+    # Navigates to a URL and waits for the DOM to load,
+    # with random delay to mimic human behavior
+
+    # ret boolean if successful or not
     async def goto(self, url):
         try:
-            await self.page.goto(url, wait_until="domcontentloaded", timeout = 60000)
+            await self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
             await random_delay()
             return True
         except PlaywrightTimeoutError:
@@ -85,18 +90,18 @@ class ParentScraper:
 
         return await self.page.content(), "html"
 
-    #Placeholder for actual scraping, to be implemented by subclasses
+    # Placeholder for actual scraping, to be implemented by subclasses
     async def scrape(self, query, lan, region):
         raise NotImplementedError
 
-    #Placeholder for saving results, to be implemented by subclasses    
+    # Placeholder for saving results, to be implemented by subclasses
     @staticmethod
     async def save_results(query, results):
         save_json(results, f"./Query_{query.id}_results.json")
 
-    #usage: for infinite scrolling pages
-    #Scrolls until number of elements matching selector stops increasing
-    #random delay between scrolls
+    # usage: for infinite scrolling pages
+    # Scrolls until number of elements matching selector stops increasing
+    # random delay between scrolls
     async def scroll_until_stable(
         self,
         selector: str,
@@ -129,13 +134,14 @@ class ParentScraper:
     def get_curr_proxy(self):
         return self.curr_proxy
 
-    # Main method to run the scraper, handles setup, scraping, saving results, and cleanup
-    # Orchestrates scraping workflow: 
+    # Main method to run the scraper, handles setup,
+    # scraping, saving results, and cleanup
+    # Orchestrates scraping workflow:
     # 1. Sets up browser and proxy
     # 2. Executes scraping logic defined in subclass
     # 3. Saves results using subclass implementation
-    #lan  - language of proxy
-    #region - region proxy is based
+    # lan  - language of proxy
+    # region - region proxy is based
     async def run(self, query, lan, region):
         await self.setup()
         results = None

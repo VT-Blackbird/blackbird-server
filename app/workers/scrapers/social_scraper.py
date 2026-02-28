@@ -3,9 +3,9 @@ from app.workers.core.parent_scraper import ParentScraper
 
 class SocialScraper(ParentScraper):
 
-    async def scrape(self,query, lan, region):
+    async def scrape(self, query, lan, region):
         raise NotImplementedError
-        url = f"https://example-social.com/"
+        url = "https://example-social.com/"
 
         html = await self.fetch_content(url)
 
