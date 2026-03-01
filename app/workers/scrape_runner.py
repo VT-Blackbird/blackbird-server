@@ -2,18 +2,17 @@ import asyncio
 import traceback
 from datetime import datetime
 
-from scrapers.news_scraper import NewsScraper
-
 from app.workers.core.query import Query  # if you created one
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.social_scraper import SocialScraper
+from app.workers.scrapers.news_scraper import NewsScraper
 
 # -----------------------------
 # USER CONFIGURATION
 # -----------------------------
 
 QUERIES = [
-    Query(text="Hegseth AND DOW Spending"),
+    # Query(text="Hegseth AND DOW Spending"),
     Query(text="vibe coding"),
 ]
 

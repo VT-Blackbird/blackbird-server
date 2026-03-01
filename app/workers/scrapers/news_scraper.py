@@ -72,12 +72,19 @@ class NewsScraper(ParentScraper):
             caption = item.findtext("description")
             pub_date = item.findtext("pubDate")
 
+            # temporary: modified to mock output format outlined in initial database schema
             articles.append(
                 {
+                    "source_id": 2,  # eg. Google News
                     "title": title,
-                    "link": link,
-                    "caption": caption,
-                    "published": pub_date,
+                    # "caption": caption,
+                    "content": caption,
+                    # "link": link,
+                    "url": link,
+                    # "published": pub_date,
+                    "published_at": pub_date,
+                    "sentiment_label": None,
+                    "sentiment_score": None
                 }
             )
 
