@@ -1,6 +1,7 @@
 import urllib.parse
 import xml.etree.ElementTree as ET
 from app.workers.core.parent_scraper import ParentScraper
+from app.workers.core.utils import save_json
 
 # Proof of concept scraper using Reddit's RSS feed. 
 # Initial attempt with snscrape relied on deprecated/modified pushshift API.
@@ -52,6 +53,14 @@ class SocialScraper(ParentScraper):
                 all_results.extend(parsed)
 
         return all_results
+
+    @staticmethod
+    async def save_results(query, results):
+        # prevents overwrite from multiple scrapers by including scraper name in filename
+        filename = f"./Query_{query.id}_SocialScraper_results.json"
+        save_json(results, filename)
+        print(f"[SocialScraper] Results saved to {filename}")
+
 
     def parse_html(self, html):
         return []
