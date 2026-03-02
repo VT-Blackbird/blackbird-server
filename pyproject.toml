@@ -6,11 +6,17 @@ select = ["E", "F", "I"]
 
 [tool.mypy]
 python_version = "3.12"
-# --- STRICT ENFORCEMENT STARTS HERE ---
 strict = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+
+# --- ADD THESE TO MATCH YOUR README ---
+disallow_any_generics = true
+check_untyped_defs = true
+warn_return_any = true
+no_implicit_reexport = true
 # --------------------------------------
+
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
 explicit_package_bases = true
