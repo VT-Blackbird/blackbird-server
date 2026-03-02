@@ -6,7 +6,7 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_root():
+def test_root() -> None:
     response = client.get("/")
     assert response.status_code == 200
     assert "Welcome" in response.json().get("message", "")

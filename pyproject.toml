@@ -6,11 +6,13 @@ select = ["E", "F", "I"]
 
 [tool.mypy]
 python_version = "3.12"
-strict = false
+# --- STRICT ENFORCEMENT STARTS HERE ---
+strict = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+# --------------------------------------
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
-
-# ADD THESE THREE LINES:
 explicit_package_bases = true
 namespace_packages = true
 mypy_path = "."

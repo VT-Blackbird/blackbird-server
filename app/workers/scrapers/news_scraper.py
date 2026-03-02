@@ -1,9 +1,11 @@
 import urllib.parse
 import xml.etree.ElementTree as ET
+from typing import Any, Dict, List, Optional, Tuple
 
 from bs4 import BeautifulSoup
 
 from app.workers.core.parent_scraper import ParentScraper
+from app.workers.core.query import Query
 from app.workers.core.utils import save_json
 
 # TODO implement HTML
@@ -15,8 +17,9 @@ class NewsScraper(ParentScraper):
         "https://news.google.com/rss/search?"
     ]  # HTML Scraping is NOT STABLE, "https://search.yahoo.com/search?"]
 
-    def build_url(self, base, query, language, region, page=0):
-        params = {
+    def build_url(self, base: str, query: Query, language: str,
+                  region: str, page: int = 0) -> str:
+        params: Dict[str, Any] = {
             "q": query.text,
             "hl": language,
             "gl": region,
@@ -28,12 +31,13 @@ class NewsScraper(ParentScraper):
         query_string = urllib.parse.urlencode(params)
         return f"{base}{query_string}"
 
-    async def scrape(self, query, lan, region):
+    async def scrape(self, query: Query, lan: str, region: str) -> List[Dict[str, Any]]:
         all_results = []
         for link in NewsScraper.BASE_URLS:
             url_ = self.build_url(link, query, lan, region)
 
-            content, content_type = await self.load(url_)
+            result: Tuple[Optional[str], Optional[str]] = await self.load(url_)
+            content, content_type = result
             if not content:
                 print("abort scrape")
                 continue
@@ -46,17 +50,17 @@ class NewsScraper(ParentScraper):
         return all_results
 
     @staticmethod
-    async def save_results(query, results):
+    async def save_results(query: Query, results: List[Any]) -> None:
         # prevents overwrite from multiple scrapers 
         # by including scraper name in filename
         filename = f"./Query_{query.id}_NewsScraper_results.json"
         save_json(results, filename)
         print(f"[NewsScraper] Results saved to {filename}")
 
-    def parse_html(self, html):
+    def parse_html(self, html: str) -> List[Dict[str, str]]:
         soup = BeautifulSoup(html, "html.parser")
 
-        articles = []
+        articles: List[Dict[str, str]] = []
         for article in soup.find_all("article"):
             title_tag = article.find("h3")
             if not title_tag:
@@ -71,10 +75,10 @@ class NewsScraper(ParentScraper):
         return articles
         # placeholder parser
 
-    def parse_rss(self, content):
+    def parse_rss(self,content: str) -> List[Dict[str, Any]]:
         root = ET.fromstring(content)
 
-        articles = []
+        articles: List[Dict[str, Any]] = []
         for item in root.findall(".//item"):
             title = item.findtext("title")
             link = item.findtext("link")
