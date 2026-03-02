@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
 from app.workers.core.parent_scraper import ParentScraper
+from app.workers.core.utils import save_json
 
 # TODO implement HTML
 
@@ -44,6 +45,14 @@ class NewsScraper(ParentScraper):
                 all_results.extend(parsed)
         return all_results
 
+    @staticmethod
+    async def save_results(query, results):
+        # prevents overwrite from multiple scrapers 
+        # by including scraper name in filename
+        filename = f"./Query_{query.id}_NewsScraper_results.json"
+        save_json(results, filename)
+        print(f"[NewsScraper] Results saved to {filename}")
+
     def parse_html(self, html):
         soup = BeautifulSoup(html, "html.parser")
 
@@ -72,12 +81,20 @@ class NewsScraper(ParentScraper):
             caption = item.findtext("description")
             pub_date = item.findtext("pubDate")
 
+            # temporary:
+            # modified to mock output format outlined in initial database schema
             articles.append(
                 {
+                    "source_id": 2,  # eg. Google News
                     "title": title,
-                    "link": link,
-                    "caption": caption,
-                    "published": pub_date,
+                    # "caption": caption,
+                    "content": caption,
+                    # "link": link,
+                    "url": link,
+                    # "published": pub_date,
+                    "published_at": pub_date,
+                    "sentiment_label": None,
+                    "sentiment_score": None
                 }
             )
 
