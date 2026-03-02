@@ -1,5 +1,6 @@
 from typing import Any, List, Optional, Tuple, Union
 
+from playwright.async_api import Browser, BrowserContext, Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from app.workers.core.browser_manager import BrowserManager
@@ -19,9 +20,9 @@ class ParentScraper:
         self.browser_manager: BrowserManager = BrowserManager()
         self.proxy_manager: ProxyManager = ProxyManager(proxies)
 
-        self.browser = None
-        self.context = None
-        self.page = None
+        self.browser: Optional[Browser] = None
+        self.context: Optional[BrowserContext] = None
+        self.page: Optional[Page] = None
         self.curr_proxy: Optional[ProxyConfig] = None
 
         self.user_agent: Optional[str] = user_agent
@@ -75,7 +76,10 @@ class ParentScraper:
             return False
         try:
             response = await self.context.request.get(url, timeout=30000)
-            response.raise_for_status()
+            if not response.ok:
+                print(f"RSS fetch failed with status: {response.status}")
+                return False
+
             return await response.text()
         except Exception as e:
             print(f"RSS fetch failed: {e}")

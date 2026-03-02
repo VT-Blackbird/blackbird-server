@@ -3,7 +3,7 @@
 # purpose is to manage playwright lifecycle and identity
 from typing import Any, Dict, Optional
 
-from playwright.async_api import Browser, BrowserContext, async_playwright
+from playwright.async_api import Browser, BrowserContext, Playwright, async_playwright
 
 from app.workers.core.proxy_manager import ProxyConfig
 
@@ -11,8 +11,10 @@ from app.workers.core.proxy_manager import ProxyConfig
 # import asyncio
 class BrowserManager:
     def __init__(self) -> None:
-        self.browser = None  # chromium browser obj
-        self.playwright = None  # playwright crawler, manages browser
+        # chromium browser obj
+        self.browser: Optional[Browser] = None
+        # playwright crawler, manages browser
+        self.playwright: Optional[Playwright] = None
 
     # Launches Playwright browser with optional proxy settings,
     # and includes args to make it more stealthy.

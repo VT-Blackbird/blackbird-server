@@ -6,7 +6,7 @@ from typing import Any
 # Utility functions for scrapers, including random delay and JSON saving
 
 
-async def random_delay(min_s:int=1, max_s:int=3) -> None:
+async def random_delay(min_s:float=1, max_s:float=3) -> None:
     await asyncio.sleep(random.uniform(min_s, max_s))
 
 
