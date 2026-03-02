@@ -47,7 +47,8 @@ class NewsScraper(ParentScraper):
 
     @staticmethod
     async def save_results(query, results):
-        # prevents overwrite from multiple scrapers by including scraper name in filename
+        # prevents overwrite from multiple scrapers 
+        # by including scraper name in filename
         filename = f"./Query_{query.id}_NewsScraper_results.json"
         save_json(results, filename)
         print(f"[NewsScraper] Results saved to {filename}")
@@ -80,7 +81,8 @@ class NewsScraper(ParentScraper):
             caption = item.findtext("description")
             pub_date = item.findtext("pubDate")
 
-            # temporary: modified to mock output format outlined in initial database schema
+            # temporary:
+            # modified to mock output format outlined in initial database schema
             articles.append(
                 {
                     "source_id": 2,  # eg. Google News
