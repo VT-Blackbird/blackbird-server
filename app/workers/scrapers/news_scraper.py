@@ -1,12 +1,10 @@
 import urllib.parse
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List, Optional, Tuple
 
 from bs4 import BeautifulSoup
 
 from app.workers.core.parent_scraper import ParentScraper
-from app.workers.core.query import Query
-from app.workers.core.utils import save_json
+
 
 # TODO implement HTML
 
@@ -17,9 +15,8 @@ class NewsScraper(ParentScraper):
         "https://news.google.com/rss/search?"
     ]  # HTML Scraping is NOT STABLE, "https://search.yahoo.com/search?"]
 
-    def build_url(self, base: str, query: Query, language: str,
-                  region: str, page: int = 0) -> str:
-        params: Dict[str, Any] = {
+    def build_url(self, base, query, language, region, page=0):
+        params = {
             "q": query.text,
             "hl": language,
             "gl": region,
@@ -31,14 +28,12 @@ class NewsScraper(ParentScraper):
         query_string = urllib.parse.urlencode(params)
         return f"{base}{query_string}"
 
-    async def scrape(self, query: Query, lan: str, region: str) -> List[Dict[str, Any]]:
+    async def scrape(self, query, lan, region):
         all_results = []
         for link in NewsScraper.BASE_URLS:
             url_ = self.build_url(link, query, lan, region)
-            print(f"[NewsScraper] Fetching: {url_}")
-            result: Tuple[Optional[str], Optional[str]] = await self.load(url_)
-            content, content_type = result
-            parsed = None
+
+            content, content_type = await self.load(url_)
             if not content:
                 print("abort scrape")
                 continue
@@ -50,18 +45,10 @@ class NewsScraper(ParentScraper):
                 all_results.extend(parsed)
         return all_results
 
-    @staticmethod
-    async def save_results(query: Query, results: List[Any]) -> None:
-        # prevents overwrite from multiple scrapers 
-        # by including scraper name in filename
-        filename = f"./Query_{query.id}_NewsScraper_results.json"
-        save_json(results, filename)
-        print(f"[NewsScraper] Results saved to {filename}")
+    def parse_html(self, html):
+        soup = BeautifulSoup(html, "html.parser")
 
-    def parse_html(self, html: str) -> List[Dict[str, str]]:
-        soup = BeautifulSoup(html, "lxml")
-
-        articles: List[Dict[str, str]] = []
+        articles = []
         for article in soup.find_all("article"):
             title_tag = article.find("h3")
             if not title_tag:
@@ -76,31 +63,22 @@ class NewsScraper(ParentScraper):
         return articles
         # placeholder parser
 
-    def parse_rss(self,content: str) -> List[Dict[str, Any]]:
+    def parse_rss(self, content):
         root = ET.fromstring(content)
 
-        articles: List[Dict[str, Any]] = []
+        articles = []
         for item in root.findall(".//item"):
             title = item.findtext("title")
             link = item.findtext("link")
             caption = item.findtext("description")
             pub_date = item.findtext("pubDate")
 
-            # temporary:
-            # modified to mock output format outlined in initial database schema
             articles.append(
                 {
-                    "source_id": 2,  # eg. Google News
                     "title": title,
-                    #TODO add publisher info (CNN, FOX, MSNOW, etc.)
-                    #"caption": caption,
-                    "content": caption,
-                    # "link": link,
-                    "url": link,
-                    # "published": pub_date,
-                    "published_at": pub_date,
-                    "sentiment_label": None,
-                    "sentiment_score": None
+                    "link": link,
+                    "caption": caption,
+                    "published": pub_date,
                 }
             )
 

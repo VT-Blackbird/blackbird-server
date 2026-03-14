@@ -5,7 +5,7 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_perform_search_success() -> None:
+def test_perform_search_success():
     """
     Test that a valid search request returns a 200 and the expected schema.
     """
@@ -29,7 +29,7 @@ def test_perform_search_success() -> None:
         assert "sentiment" in data["results"][0]
 
 
-def test_search_validation_error() -> None:
+def test_search_validation_error():
     """
     Test that an invalid request (empty query) returns a 422 Unprocessable Entity.
     """

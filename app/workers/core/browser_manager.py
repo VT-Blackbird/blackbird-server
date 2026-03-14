@@ -1,27 +1,20 @@
 # purpose is to manage playwright lifecycle and identity
 
-# purpose is to manage playwright lifecycle and identity
-from typing import Any, Dict, Optional
-
-from playwright.async_api import Browser, BrowserContext, Playwright, async_playwright
-
-from app.workers.core.proxy_manager import ProxyConfig
+from playwright.async_api import async_playwright
 
 
+# import asyncio
 class BrowserManager:
-    def __init__(self) -> None:
-        # chromium browser obj
-        self.browser: Optional[Browser] = None
-        # playwright crawler, manages browser
-        self.playwright: Optional[Playwright] = None
+    def __init__(self):
+        self.browser = None  # chromium browser obj
+        self.playwright = None  # playwright crawler, manages browser
 
     # Launches Playwright browser with optional proxy settings,
     # and includes args to make it more stealthy.
     # Returns the browser instance.
-    async def launch(self, proxy: Optional[ProxyConfig] = None) -> Optional[Browser]:
+    async def launch(self, proxy=None):
         self.playwright = await async_playwright().start()
-        assert self.playwright is not None, "Playwright failed to start"
-        launch_args: Dict[str, Any] = {
+        launch_args = {
             "headless": True,
             "args": [  # look more into these args,
                 # they are meant to make the browser more stealthy
@@ -38,7 +31,7 @@ class BrowserManager:
 
     # Creates browser context + optional user agent (for identity)
     # and includes a script to make it more stealthy. Returns the context instance.
-    async def new_context(self, user_agent: Optional[str] = None) -> BrowserContext:
+    async def new_context(self, user_agent=None):
         if not self.browser:
             raise Exception("Browser not launched. Call launch() first.")
 
@@ -54,7 +47,7 @@ class BrowserManager:
         """)
         return context
 
-    async def close(self) -> None:
+    async def close(self):
         if self.browser:
             await self.browser.close()
         if self.playwright:
