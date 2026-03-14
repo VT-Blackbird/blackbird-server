@@ -8,7 +8,6 @@ from playwright.async_api import Browser, BrowserContext, Playwright, async_play
 from app.workers.core.proxy_manager import ProxyConfig
 
 
-# import asyncio
 class BrowserManager:
     def __init__(self) -> None:
         # chromium browser obj

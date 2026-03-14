@@ -35,9 +35,10 @@ class NewsScraper(ParentScraper):
         all_results = []
         for link in NewsScraper.BASE_URLS:
             url_ = self.build_url(link, query, lan, region)
-
+            print(f"[NewsScraper] Fetching: {url_}")
             result: Tuple[Optional[str], Optional[str]] = await self.load(url_)
             content, content_type = result
+            parsed = None
             if not content:
                 print("abort scrape")
                 continue
@@ -58,7 +59,7 @@ class NewsScraper(ParentScraper):
         print(f"[NewsScraper] Results saved to {filename}")
 
     def parse_html(self, html: str) -> List[Dict[str, str]]:
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, "lxml")
 
         articles: List[Dict[str, str]] = []
         for article in soup.find_all("article"):
@@ -91,7 +92,8 @@ class NewsScraper(ParentScraper):
                 {
                     "source_id": 2,  # eg. Google News
                     "title": title,
-                    # "caption": caption,
+                    #TODO add publisher info (CNN, FOX, MSNOW, etc.)
+                    #"caption": caption,
                     "content": caption,
                     # "link": link,
                     "url": link,

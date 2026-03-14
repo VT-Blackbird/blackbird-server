@@ -15,7 +15,9 @@ from app.workers.scrapers.social_scraper import SocialScraper
 
 QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
-    Query(text="vibe coding"),
+    Query(text="AFA"),
+    # Query(text="Quincentennial"),
+    Query(text="CCA")
 ]
 
 # No proxies implemented yet, but you can add them here if needed
@@ -26,19 +28,31 @@ PROXIES: List[ProxyConfig] = [
         "username": "glsdbmdq",
         "password": "b0p2nqm0pc47",
         "region": "US",  # generally country
-        "language": "en-US",
+        "language": "en-US"
     },
     {
         "server": "198.23.239.134:6540",
         "username": "glsdbmdq",
         "password": "b0p2nqm0pc47",
         "region": "US",
-        "language": "en-US",
+        "language": "en-US"
     },
+    {
+        "server": "107.172.163.27:6543",
+        "username": "glsdbmdq",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "216.10.2.159:6837",
+        "username": "glsdbmdq",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    }
 ]
-# # PROXIES = None #disable proxies for now, not fully implemented yet
-# 23.95.150.145:6114:glsdbmdq:b0p2nqm0pc47
-# 198.23.239.134:6540:glsdbmdq:b0p2nqm0pc47
+
 USER_AGENT: str = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
