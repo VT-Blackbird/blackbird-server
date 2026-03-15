@@ -1,11 +1,12 @@
 import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional, Tuple
+
 from bs4 import BeautifulSoup
+
+from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 from app.workers.core.utils import save_json
-from app.workers.core.parent_scraper import ParentScraper
-
 
 # TODO implement HTML
 

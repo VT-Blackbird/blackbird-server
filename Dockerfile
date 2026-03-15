@@ -18,7 +18,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 RUN playwright install --with-deps
 # 5. Copy the rest of the application
 COPY . .
-
+COPY scripts ./scripts
+RUN chmod +x ./scripts/check.shwsl
 # 6. Expose the port FastAPI will run on
 EXPOSE 8000
 

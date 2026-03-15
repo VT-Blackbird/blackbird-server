@@ -5,6 +5,7 @@
 import random
 from typing import List, Optional, TypedDict
 
+
 # =============================================
 # ProxyManager: Handles proxy management for scraping tasks
 # - Initializes with a list of proxies

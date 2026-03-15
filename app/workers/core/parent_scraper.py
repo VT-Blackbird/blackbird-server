@@ -1,8 +1,10 @@
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from typing import Any, List, Optional, Tuple, Union
+
 from playwright.async_api import Browser, BrowserContext, Page
-from typing import Optional, Any, List, Tuple, Union
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
 from app.workers.core.browser_manager import BrowserManager
-from app.workers.core.proxy_manager import ProxyManager, ProxyConfig
+from app.workers.core.proxy_manager import ProxyConfig, ProxyManager
 from app.workers.core.utils import random_delay, save_json
 
 
@@ -50,7 +52,8 @@ class ParentScraper:
         if self.browser:
             await self.browser.close()
         if self.browser_manager:
-            await self.browser_manager.close() #closing might invalidate future launches if shared obj across scrpers
+            # closing might invalidate future launches if shared obj across scrpers
+            await self.browser_manager.close()
 
         #reset references
         self.page = None
@@ -65,7 +68,9 @@ class ParentScraper:
         if not self.page:
             return False
         try:
-            await self.page.goto(url, wait_until="domcontentloaded", timeout=15000) #timeout in ms
+            #timeout in ms
+            await self.page.goto(url,
+                                 wait_until="domcontentloaded", timeout=15000)
             await random_delay()
             return True
         except PlaywrightTimeoutError:

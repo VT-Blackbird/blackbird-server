@@ -1,10 +1,13 @@
-from app.workers.core.parent_scraper import ParentScraper
-from app.workers.core.query import Query
 import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional, Tuple
+
 from bs4 import BeautifulSoup
+
+from app.workers.core.parent_scraper import ParentScraper
+from app.workers.core.query import Query
 from app.workers.core.utils import save_json
+
 
 class GovScraper(ParentScraper):
     BASE_URLS = [
@@ -68,9 +71,11 @@ class GovScraper(ParentScraper):
         except Exception as e:
             print("BeautifulSoup error:", e)
             return articles
-
         #detect if have access
-        if  soup.title.string == "Access Denied":
+        title_tag = soup.title
+        title = title_tag.string if title_tag and title_tag.string else None
+
+        if title == "Access Denied":
             print("Access Denied")
             return articles
         # detect which layout exists
