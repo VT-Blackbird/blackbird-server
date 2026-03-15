@@ -15,7 +15,7 @@ from app.workers.scrapers.social_scraper import SocialScraper
 
 QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
-    Query(text="AFA"),
+    Query(text="250 AND AF"),
     # Query(text="Quincentennial"),
     Query(text="CCA")
 ]
@@ -45,7 +45,7 @@ PROXIES: List[ProxyConfig] = [
         "language": "en-US"
     },
     {
-        "server": "216.10.2.159:6837",
+        "server": "216.10.27.159:6837",
         "username": "glsdbmdq",
         "password": "b0p2nqm0pc47",
         "region": "US",

@@ -8,6 +8,7 @@ from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 from app.workers.core.utils import save_json
 
+
 # TODO implement HTML
 
 
@@ -75,26 +76,46 @@ class NewsScraper(ParentScraper):
         return articles
         # placeholder parser
 
-    def parse_rss(self, content:str)-> List[Dict[str,Any]]:
-        root = ET.fromstring(content)
+    def parse_rss(self, content: str) -> List[Dict[str, Any]]:
+        """
+        Parse an RSS feed into a list of article dictionaries.
+        Handles namespaces, missing fields, and logs item count.
+        """
+        try:
+            root = ET.fromstring(content)
+        except ET.ParseError as e:
+            print(f"[parse_rss] Failed to parse XML: {e}")
+            return []
 
-        articles:List[Dict[str, Any]] = []
-        for item in root.findall(".//item"):
-            title = item.findtext("title")
-            link = item.findtext("link")
-            caption = item.findtext("description")
-            pub_date = item.findtext("pubDate")
+        # Handle namespaces (Google News uses default namespace sometimes)
+        # Build a namespace map if needed
+        nsmap = {}
+        for elem in root.iter():
+            if elem.tag[0] == "{":
+                uri, _, tag = elem.tag[1:].partition("}")
+                nsmap[uri] = uri
 
-            articles.append(
-                {
-                    "source_id": 2,  #placeholder
-                    "title": title,
-                    "content": caption,
-                    "url": link,
-                    "published_at": pub_date,
-                    "sentiment_label": None,
-                    "sentiment_score": None
-                }
-            )
+        # Find all <item> elements (with or without namespace)
+        items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
+        print(f"[parse_rss] Found {len(items)} items")
+
+        articles: List[Dict[str, Any]] = []
+
+        for item in items:
+            # Use .findtext with default fallback to avoid None
+            title = item.findtext("title") or item.findtext("{http://www.w3.org/2005/Atom}title") or "No Title"
+            link = item.findtext("link") or item.findtext("{http://www.w3.org/2005/Atom}link") or ""
+            caption = item.findtext("description") or item.findtext("{http://www.w3.org/2005/Atom}summary") or ""
+            pub_date = item.findtext("pubDate") or item.findtext("{http://www.w3.org/2005/Atom}updated") or ""
+
+            articles.append({
+                "source_id": 2,  # placeholder
+                "title": title,
+                "content": caption,
+                "url": link,
+                "published_at": pub_date,
+                "sentiment_label": None,
+                "sentiment_score": None
+            })
 
         return articles

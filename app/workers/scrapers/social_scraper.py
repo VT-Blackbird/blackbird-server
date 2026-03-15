@@ -6,6 +6,7 @@ from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 from app.workers.core.utils import save_json
 
+
 # Proof of concept scraper using Reddit's RSS feed.
 # Initial attempt with snscrape relied on deprecated/modified pushshift API.
 
@@ -97,20 +98,20 @@ class SocialScraper(ParentScraper):
                 raw_content = entry.findtext("atom:content", namespaces=namespaces)
                 published = entry.findtext("atom:updated", namespaces=namespaces)
 
-            # following output format outlined in initial database schema
-            articles.append(
-                {
-                    "source_id": 1,  # eg. Reddit
-                    "title": title,
-                    "content": raw_content
-                    if raw_content
-                    else title,  # for now fallback to title if content is missing
-                    "url": url,
-                    "published_at": published,
-                    "sentiment_label": None,
-                    "sentiment_score": None,
-                }
-            )
+                # following output format outlined in initial database schema
+                articles.append(
+                    {
+                        "source_id": 1,  # eg. Reddit
+                        "title": title,
+                        "content": raw_content
+                        if raw_content
+                        else title,  # for now fallback to title if content is missing
+                        "url": url,
+                        "published_at": published,
+                        "sentiment_label": None,
+                        "sentiment_score": None,
+                    }
+                )
         except Exception as e:
             print(f"[SocialScraper] RSS Parsing error: {e}")
         return articles
