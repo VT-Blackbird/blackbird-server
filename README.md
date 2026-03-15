@@ -55,31 +55,16 @@ server/
 │   │
 │   └── utils/                    # Shared helper utilities and common functions
 │
-├── scripts/                      # DevOps & Quality Control scripts
-│   └── check.sh                  # THE GAUNTLET: Lint, Type Check, & Test
-├── tests/                        # Automated Pytest suite
-├── docker-compose.yml            # Container orchestration
-├── Dockerfile                    # Backend environment definition
-├── pyproject.toml                # Tool configurations (Ruff, MyPy)
-└── requirements.txt              # Python dependencies
+├── tests/                        # Pytest test suite
+│   └── test_main.py              # Example API test
+│
+├── docker-compose.yml            # Multi-container orchestration
+├── Dockerfile                    # Backend container definition
+├── requirements.txt              # Python dependencies
+└── README.md                     # Project documentation
 
 
 ```
-
-## Quality Standards
-
-- Ruff: Enforces PEP 8 and import sorting.
-
-- MyPy (Strict)
-  - All function signatures must have type hints.
-  - None returns and variables must be explicitly handled via Optional or guard clauses.
-  - Implicit Any types are disallowed.
-- Pytest: All logic in app/services and app/workers must have corresponding test coverage in tests/.
-
-| Action              | Command | Notes                                            |
-|---------------------|--------|--------------------------------------------------|
-| Runs checks locally | `sudo ./scripts/check.sh` | Runs quality assurance tests (Ruff MyPy, PyTest( |
- | Fast formatting    |  ` sudo docker compose run --rm backend ruff check . --fix`| Fixes style errors fast|
 
 ## Docker
 
