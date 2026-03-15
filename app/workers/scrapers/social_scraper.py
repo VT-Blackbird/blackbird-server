@@ -6,7 +6,6 @@ from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 from app.workers.core.utils import save_json
 
-
 # Proof of concept scraper using Reddit's RSS feed.
 # Initial attempt with snscrape relied on deprecated/modified pushshift API.
 

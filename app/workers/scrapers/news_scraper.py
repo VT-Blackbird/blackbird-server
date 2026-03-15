@@ -8,7 +8,6 @@ from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 from app.workers.core.utils import save_json
 
-
 # TODO implement HTML
 
 
@@ -103,10 +102,14 @@ class NewsScraper(ParentScraper):
 
         for item in items:
             # Use .findtext with default fallback to avoid None
-            title = item.findtext("title") or item.findtext("{http://www.w3.org/2005/Atom}title") or "No Title"
-            link = item.findtext("link") or item.findtext("{http://www.w3.org/2005/Atom}link") or ""
-            caption = item.findtext("description") or item.findtext("{http://www.w3.org/2005/Atom}summary") or ""
-            pub_date = item.findtext("pubDate") or item.findtext("{http://www.w3.org/2005/Atom}updated") or ""
+            title = (item.findtext("title") or
+                     item.findtext("{http://www.w3.org/2005/Atom}title") or "No Title")
+            link = (item.findtext("link")
+                    or item.findtext("{http://www.w3.org/2005/Atom}link") or "")
+            caption = (item.findtext("description") or
+                       item.findtext("{http://www.w3.org/2005/Atom}summary") or "")
+            pub_date = (item.findtext("pubDate") or
+                        item.findtext("{http://www.w3.org/2005/Atom}updated") or "")
 
             articles.append({
                 "source_id": 2,  # placeholder
