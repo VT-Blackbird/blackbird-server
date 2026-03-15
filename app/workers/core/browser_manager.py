@@ -1,20 +1,22 @@
 # purpose is to manage playwright lifecycle and identity
 
-from playwright.async_api import async_playwright
-
-
+from playwright.async_api import async_playwright, Browser, Playwright, BrowserContext
+from typing import Any, Dict, Optional
+from app.workers.core.proxy_manager import ProxyConfig
 # import asyncio
 class BrowserManager:
-    def __init__(self):
-        self.browser = None  # chromium browser obj
-        self.playwright = None  # playwright crawler, manages browser
+    def __init__(self) -> None:
+        self.browser: Optional[Browser] = None  # chromium browser obj
+        self.playwright: Optional[Playwright] = None  # playwright crawler, manages browser
 
     # Launches Playwright browser with optional proxy settings,
     # and includes args to make it more stealthy.
     # Returns the browser instance.
-    async def launch(self, proxy=None):
+    async def launch(self, proxy: Optional[ProxyConfig] = None)\
+            -> Optional[Browser]:
         self.playwright = await async_playwright().start()
-        launch_args = {
+        assert self.playwright is not None, "Playwright not initialized."
+        launch_args:Dict[str, Any] = {
             "headless": True,
             "args": [  # look more into these args,
                 # they are meant to make the browser more stealthy
@@ -31,7 +33,7 @@ class BrowserManager:
 
     # Creates browser context + optional user agent (for identity)
     # and includes a script to make it more stealthy. Returns the context instance.
-    async def new_context(self, user_agent=None):
+    async def new_context(self, user_agent:Optional[str] = None) -> BrowserContext:
         if not self.browser:
             raise Exception("Browser not launched. Call launch() first.")
 
@@ -47,7 +49,7 @@ class BrowserManager:
         """)
         return context
 
-    async def close(self):
+    async def close(self) -> None:
         if self.browser:
             await self.browser.close()
         if self.playwright:

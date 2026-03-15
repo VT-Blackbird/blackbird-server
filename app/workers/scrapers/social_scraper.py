@@ -1,15 +1,117 @@
+import urllib.parse
+import xml.etree.ElementTree as ET
+from typing import Any, Dict, List, Optional
+
 from app.workers.core.parent_scraper import ParentScraper
+from app.workers.core.query import Query
+from app.workers.core.utils import save_json
+
+# Proof of concept scraper using Reddit's RSS feed.
+# Initial attempt with snscrape relied on deprecated/modified pushshift API.
+
+# TODO implement HTML (if needed)
 
 
 class SocialScraper(ParentScraper):
+    BASE_URLS = ["https://www.reddit.com/search.rss?"]
 
-    async def scrape(self, query, lan, region):
-        raise NotImplementedError
-        url = "https://example-social.com/"
+    def build_url(self, base: str, query: Query, language: str, region: str) -> str:
+        """
+        Options for params:
+        - q: The search string (escaped via urlencode)
+        - sort: 'new' (latest), 'relevance' (best match), 'top' (highest score)
+        - t: 'all', 'day', 'week', 'month' (time filter)
+        """
+        params: Dict[str, str] = {
+            "q": query.text,
+            "sort": "new",
+            "t": "all",
+            "hl": language,
+            "gl": region,
+            "ceid": f"{region}:{language.split('-')[0]}"
+        }
 
-        html = await self.fetch_content(url)
+        query_string = urllib.parse.urlencode(params)
+        return f"{base}{query_string}"
 
-        return self.parse_posts(html)
 
-    def parse_posts(self, html):
-        return [{"post": "example"}]
+    async def scrape(self, query: Query, lan: str, region: str) -> List[Dict[str, Any]]:
+
+        all_results: List[Dict[str, Any]] = []
+        for link in self.BASE_URLS:
+            url_ = self.build_url(link, query, lan, region)
+            print(f"[SocialScraper] Fetching: {url_}")
+
+            content, content_type = await self.load(url_)
+
+            if not content:
+                print(f"[SocialScraper] Abort scrape for {url_}")
+                continue
+
+            parsed = []
+            if content_type == "xml":
+                parsed = self.parse_rss(content)
+            elif content_type == "html":
+                parsed = self.parse_html(content)
+
+            if parsed:
+                all_results.extend(parsed)
+
+        return all_results
+
+    @staticmethod
+    async def save_results(query: Query, results: List[Any]) -> None:
+        # prevents overwrite from multiple scrapers
+        # by including scraper name in filename
+        filename = f"./Query_{query.id}_SocialScraper_results.json"
+        save_json(results, filename)
+        print(f"[SocialScraper] Results saved to {filename}")
+
+    def parse_html(self, html: str) -> List[Dict[str, Any]]:
+        return []
+
+    def parse_rss(self, content: str) -> List[Dict[str, Any]]:
+        articles: List[Dict[str, Any]] = []
+        try:
+            # Reddit RSS uses the Atom namespace
+
+            namespaces = {"atom": "http://www.w3.org/2005/Atom"}
+            root = ET.fromstring(content)
+
+            for entry in root.findall("atom:entry", namespaces):
+                title = entry.findtext("atom:title", namespaces=namespaces)
+                link_tag = entry.find("atom:link", namespaces=namespaces)
+                # 1. Get the attribute, which might be None
+                raw_url: Optional[str] = link_tag.get("href") \
+                    if link_tag is not None else ""
+
+                # 2. Coerce it to a string so it's never None
+                url: str = raw_url if raw_url is not None else ""
+
+                # edge case: some entries are subreddit homepages or user profiles with
+                # no relevant discussion content.
+                # actual posts always contain '/comments/' in the url
+                if "/comments/" not in url:
+                    # skip subreddit homepages or user profiles
+                    continue
+                raw_content = entry.findtext("atom:content", namespaces=namespaces)
+                published = entry.findtext("atom:updated", namespaces=namespaces)
+
+            # following output format outlined in initial database schema
+            articles.append(
+                {
+                    "source_id": 1,  # eg. Reddit
+                    "title": title,
+                    "content": raw_content
+                    if raw_content
+                    else title,  # for now fallback to title if content is missing
+                    "url": url,
+                    "published_at": published,
+                    "sentiment_label": None,
+                    "sentiment_score": None,
+                }
+            )
+        except Exception as e:
+            print(f"[SocialScraper] RSS Parsing error: {e}")
+        return articles
+

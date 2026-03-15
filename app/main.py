@@ -29,7 +29,7 @@ app.add_middleware(
 
 # Example root endpoint
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     return {"message": "Welcome to the team Blackbird server!"}
 
 
