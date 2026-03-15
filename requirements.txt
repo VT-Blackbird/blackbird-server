@@ -19,4 +19,10 @@ mypy==1.10.0
 # Scraping
 # =========================
 playwright==1.58.0
-bs4 == 0.0.2
+bs4==0.0.2
+
+# =========================
+# Database dependencies
+# =========================
+sqlmodel==0.0.33
+psycopg2-binary==2.9.11
