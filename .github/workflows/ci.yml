@@ -21,4 +21,4 @@ jobs:
         run: |
           # We use the exact same script you just perfected!
           # We use --build to ensure the latest requirements are installed
-          docker compose run --rm backend ./scripts/check.sh
+          docker compose run --rm backend bash ./scripts/check.sh

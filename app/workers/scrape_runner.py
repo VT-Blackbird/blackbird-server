@@ -15,7 +15,9 @@ from app.workers.scrapers.social_scraper import SocialScraper
 
 QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
-    Query(text="vibe coding"),
+    Query(text="250 AND AF"),
+    # Query(text="Quincentennial"),
+    Query(text="CCA")
 ]
 
 # No proxies implemented yet, but you can add them here if needed
@@ -26,15 +28,29 @@ PROXIES: List[ProxyConfig] = [
         "username": "glsdbmdq",
         "password": "b0p2nqm0pc47",
         "region": "US",  # generally country
-        "language": "en-US",
+        "language": "en-US"
     },
     {
         "server": "198.23.239.134:6540",
         "username": "glsdbmdq",
         "password": "b0p2nqm0pc47",
         "region": "US",
-        "language": "en-US",
+        "language": "en-US"
     },
+    {
+        "server": "107.172.163.27:6543",
+        "username": "glsdbmdq",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "216.10.27.159:6837",
+        "username": "glsdbmdq",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    }
 ]
 # # PROXIES = None #disable proxies for now, not fully implemented yet
 # 23.95.150.145:6114:glsdbmdq:b0p2nqm0pc47
@@ -51,7 +67,7 @@ USER_AGENT: str = (
 # -----------------------------
 
 
-async def run_scraper() -> None:
+async def run_scraper() ->None:
     scrapers: List[Any] = [
         NewsScraper(
             proxies=PROXIES,
@@ -67,7 +83,7 @@ async def run_scraper() -> None:
         ),
     ]
 
-    all_results: List[Any] = []
+    all_results :List[Any]= []
 
     start_time = datetime.now()
     for scraper in scrapers:

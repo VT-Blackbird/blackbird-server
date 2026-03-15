@@ -21,9 +21,9 @@ class ProxyConfig(TypedDict):
 class ProxyManager:
     # proxies should be in format
     #[{"server": "ip:port", "username": "user", "password": "pass"}, ...]
-    def __init__(self, proxies: Optional[List[ProxyConfig]] = None) -> None:
+    def __init__(self, proxies:Optional[List[ProxyConfig]]=None)->None:
         if proxies is None:
-            self.proxies: List[ProxyConfig] = []
+            self.proxies:List[ProxyConfig] = []
         else:
             assert isinstance(
                 proxies, list
@@ -31,16 +31,17 @@ class ProxyManager:
             self.proxies = proxies
 
     # Returns Random Proxy config from list
-    def get_proxy(self) -> Optional[ProxyConfig]:
+    def get_proxy(self)-> Optional[ProxyConfig]:
         if not self.proxies:
             return None
 
         proxy = random.choice(self.proxies)
 
-        return ProxyConfig(
+        return  ProxyConfig(
             server=proxy["server"],
             username=proxy.get("username"),
             password=proxy.get("password"),
             language=proxy.get("language"),
             region=proxy.get("region"),
         )
+        
