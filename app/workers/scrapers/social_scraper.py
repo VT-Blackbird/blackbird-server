@@ -30,7 +30,7 @@ class SocialScraper(ParentScraper):
             "gl": region,
             "ceid": f"{region}:{language.split('-')[0]}"
         }
-        
+
         query_string = urllib.parse.urlencode(params)
         return f"{base}{query_string}"
 
@@ -61,7 +61,7 @@ class SocialScraper(ParentScraper):
 
     @staticmethod
     async def save_results(query: Query, results: List[Any]) -> None:
-        # prevents overwrite from multiple scrapers 
+        # prevents overwrite from multiple scrapers
         # by including scraper name in filename
         filename = f"./Query_{query.id}_SocialScraper_results.json"
         save_json(results, filename)
@@ -94,7 +94,6 @@ class SocialScraper(ParentScraper):
                 if "/comments/" not in url:
                     # skip subreddit homepages or user profiles
                     continue
-
                 raw_content = entry.findtext("atom:content", namespaces=namespaces)
                 published = entry.findtext("atom:updated", namespaces=namespaces)
 
@@ -114,5 +113,5 @@ class SocialScraper(ParentScraper):
                 )
         except Exception as e:
             print(f"[SocialScraper] RSS Parsing error: {e}")
-
         return articles
+

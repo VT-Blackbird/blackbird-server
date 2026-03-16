@@ -12,11 +12,11 @@ run_cmd() {
   fi
 }
 
-echo "--- 1. Running Linter (Ruff) ---"
+echo "---- 1. Running Linter (Ruff) ----"
 run_cmd ruff check .
 
-echo "--- 2. Running Type Checker (MyPy) ---"
+echo "---- 2. Running Type Checker (MyPy) ----"
 run_cmd mypy app tests
 
-echo "--- 3. Running Tests (Pytest) ---"
+echo "---- 3. Running Tests (Pytest) ----"
 run_cmd pytest

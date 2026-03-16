@@ -15,36 +15,33 @@ from app.workers.core.utils import random_delay, save_json
 # =============================================
 class ParentScraper:
     # initializes parent scraper, optional proxies and user agent
-    def __init__(self, proxies: Optional[List[ProxyConfig]] = None,
-                 user_agent: Optional[str] = None) -> None:
-        self.browser_manager: BrowserManager = BrowserManager()
-        self.proxy_manager: ProxyManager = ProxyManager(proxies)
+    def __init__(self, proxies:Optional[List[ProxyConfig]]=None,
+                 user_agent:Optional[str]=None) -> None:
+        self.browser_manager = BrowserManager()
+        self.proxy_manager = ProxyManager(proxies)
 
-        self.browser: Optional[Browser] = None
-        self.context: Optional[BrowserContext] = None
-        self.page: Optional[Page] = None
-        self.curr_proxy: Optional[ProxyConfig] = None
+        self.browser:Optional[Browser] = None
+        self.context:Optional[BrowserContext] = None
+        self.page:Optional[Page] = None
+        self.curr_proxy:Optional[ProxyConfig] = None
 
-        self.user_agent: Optional[str] = user_agent
+        self.user_agent:Optional[str] = user_agent
 
     # Setup browser with proxy and user agent
-    async def setup(self) -> None:
-        if self.browser:
+    async def setup(self)->None:
+        if self.page:
             return  # If already set up
 
         self.curr_proxy = self.proxy_manager.get_proxy()
 
         self.browser = await self.browser_manager.launch(self.curr_proxy)
-
         if not self.browser:
             return
-
         self.context = await self.browser_manager.new_context(
             user_agent=self.user_agent
         )
-
         if self.context:
-            self.page = await self.context.new_page()
+            self.page = await self.context.new_page()  # Pagination
 
     # Closes browser and cleans up resources
     async def close(self) -> None:
@@ -54,7 +51,14 @@ class ParentScraper:
             await self.context.close()
         if self.browser:
             await self.browser.close()
-        await self.browser_manager.close()
+        if self.browser_manager:
+            # closing might invalidate future launches if shared obj across scrpers
+            await self.browser_manager.close()
+
+        #reset references
+        self.page = None
+        self.context = None
+        self.browser = None
 
     # Navigates to a URL and waits for the DOM to load,
     # with random delay to mimic human behavior
@@ -64,7 +68,9 @@ class ParentScraper:
         if not self.page:
             return False
         try:
-            await self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            #timeout in ms
+            await self.page.goto(url,
+                                 wait_until="domcontentloaded", timeout=15000)
             await random_delay()
             return True
         except PlaywrightTimeoutError:
@@ -106,11 +112,13 @@ class ParentScraper:
 
         return await self.page.content(), "html"
 
-    # Placeholder for actual scraping, to be implemented by subclasses
+        # Placeholder for actual scraping, to be implemented by subclasses
+
     async def scrape(self, query: Any, lan: str, region: str) -> List[Any]:
         raise NotImplementedError
 
-    # Placeholder for saving results, to be implemented by subclasses
+        # # Placeholder for saving results, to be implemented by subclasses
+
     @staticmethod
     async def save_results(query: Any, results: List[Any]) -> None:
         save_json(results, f"./Query_{query.id}_results.json")
@@ -123,8 +131,8 @@ class ParentScraper:
         selector: str,
         max_rounds: int = 10,
         scroll_step: int = 3000,
-        delay_range: Tuple[float, float]=(1.5, 3.0),
-    ) -> None:
+            delay_range:Tuple[float, float]=(1.5, 3.0),
+    )->None:
         if not self.page:
             return
         print("called Scroll until stable")
@@ -149,7 +157,7 @@ class ParentScraper:
 
             await random_delay(*delay_range)
 
-    def get_curr_proxy(self) -> Optional[ProxyConfig]:
+    def get_curr_proxy(self) ->Optional[ProxyConfig]:
         return self.curr_proxy
 
     # Main method to run the scraper, handles setup,
@@ -167,7 +175,11 @@ class ParentScraper:
             results = await self.scrape(query, lan, region)
             if results:
                 await self.save_results(query, results)
+                print(f"Found Results for query: {query.text}")
+            else:
+                print(f"No results found for {query.text}")
+        except Exception as e:
+            print(f"received the following exception: {e}")
         finally:
-            # print("Done!")
             await self.close()
             return results
