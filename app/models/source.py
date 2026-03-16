@@ -1,30 +1,33 @@
+from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlmodel import Enum, Field, Relationship, SQLModel
+from pydantic import ConfigDict
+from sqlmodel import Field, Relationship, SQLModel
+
+# Import the link model directly to satisfy SQLModel's inspection
+from app.models.search import SearchSource
 
 if TYPE_CHECKING:
     from app.models.article import Article
     from app.models.proxy import ProxyLog
-    from app.models.search import Search, SearchSource
+    from app.models.search import Search
 
-
-# enums for source_type and extraction_method
 
 class SourceType(str, Enum):
-    """Categories of platforms we scrape."""
     SOCIAL = "SOCIAL"
     NEWS = "NEWS"
     OFFICIAL = "OFFICIAL"
 
+
 class ExtractionMethod(str, Enum):
-    """Strategy used to collect data."""
     RSS = "RSS"
     STATIC_HTML = "STATIC_HTML"
     INFINITE_SCROLL = "INFINITE_SCROLL"
 
 
 class Source(SQLModel, table=True):
-    """Holds all targeted platforms."""
+    # Fix for Pydantic v2 Enum validation
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(unique=True, index=True)
@@ -35,7 +38,8 @@ class Source(SQLModel, table=True):
 
     # Relationships
     articles: List["Article"] = Relationship(back_populates="source")
+    # CHANGED: link_model is now the class SearchSource, not the string "SearchSource"
     searches: List["Search"] = Relationship(
-        back_populates="sources", link_model="SearchSource"
+        back_populates="sources", link_model=SearchSource
     )
     proxy_logs: List["ProxyLog"] = Relationship(back_populates="source")

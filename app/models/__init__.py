@@ -2,7 +2,16 @@
 from .article import Article
 from .proxy import Proxy, ProxyLog
 from .search import Search, SearchSource
-from .source import Source
+from .source import ExtractionMethod, Source, SourceType  # Added Enums here
 
-# This allows other parts of the app to do: from app.models import Article
-__all__ = ["Search", "SearchSource", "Source", "Article", "Proxy", "ProxyLog"]
+# This allows other parts of the app to do: from app.models import SourceType
+__all__ = [
+    "Search",
+    "SearchSource",
+    "Source",
+    "SourceType",
+    "ExtractionMethod",
+    "Article",
+    "Proxy",
+    "ProxyLog",
+]

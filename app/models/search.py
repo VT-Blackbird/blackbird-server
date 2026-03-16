@@ -24,22 +24,16 @@ class SearchSource(SQLModel, table=True):
 
 
 class Search(SQLModel, table=True):
-    """Represents a single keyword search session."""
-
     __table_args__ = (
         CheckConstraint(
-            "request_limit > 0 AND request_limit <= 200",
+            "request_limit > 0 AND request_limit <= 500",
             name="check_request_limit_range",
         ),
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     query_text: str = Field(index=True)
-
-    # 'ge' (greater or equal) and 'le' (less or equal) for Pydantic validation
-    request_limit: int = Field(default=20, ge=1, le=200)
-
-    # By default, assume all sources are requested unless specified otherwise
+    request_limit: int = Field(default=20, ge=1, le=500)
     all_sources_requested: bool = Field(default=True)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -1,11 +1,11 @@
 import logging
 
-from sqlmodel import Session, select
+from sqlmodel import Session, SQLModel, select  # SQLModel comes from the library
 
 from app.db.session import engine
 
-# Importing app.models ensures all classes are registered with SQLModel.metadata
-from app.models import Source, SQLModel
+# Our custom models and enums come from our local package
+from app.models import ExtractionMethod, Source, SourceType
 
 # Setup logging to see init progress in docker logs
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +17,7 @@ def init_db():
     Creates tables based on models and seeds initial data.
     """
     logger.info("Verifying database schema...")
-    # This looks at the metadata collected from app.models.__init__
+    # This command creates any tables that don't already exist in the DB
     SQLModel.metadata.create_all(engine)
 
     logger.info("Checking for initial seed data...")
@@ -29,28 +29,26 @@ def seed_sources():
     Ensures the 'Source' table has the necessary entries for the scrapers.
     """
     with Session(engine) as session:
-        # Define the baseline sources required for Pass 1
         initial_sources = [
             Source(
                 id=1,
                 name="Reddit",
-                source_type="Social",
-                extraction_method="RSS",
+                source_type=SourceType.SOCIAL,
+                extraction_method=ExtractionMethod.RSS,
                 base_url="https://www.reddit.com/search.rss?",
                 is_enabled=True,
             ),
             Source(
                 id=2,
                 name="Google News",
-                source_type="News",
-                extraction_method="RSS",
+                source_type=SourceType.NEWS,
+                extraction_method=ExtractionMethod.RSS,
                 base_url="https://news.google.com/rss/search?",
                 is_enabled=True,
             ),
         ]
 
         for source_data in initial_sources:
-            # Check by name to avoid duplicates if ID sequences reset
             statement = select(Source).where(Source.name == source_data.name)
             existing = session.exec(statement).first()
 
