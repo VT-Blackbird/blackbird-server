@@ -118,19 +118,6 @@ class ParentScraper:
             print(f"Playwright navigation error: {e}")
             return None
 
-    # async def fetch_rss(self, url: str) -> Optional[str]:
-    #     if not self.context:
-    #         return None
-    #     try:
-    #         response = await self.context.request.get(url, timeout=30000)
-    #         if not response.ok:
-    #             print(f"RSS fetch failed with status: {response.status}")
-    #             return None
-    #
-    #         return await response.text()
-    #     except Exception as e:
-    #         print(f"RSS fetch failed: {e}")
-    #         return None
     ##Fetches RSS Info (with headers)
     async def fetch_rss(self, url: str) -> Optional[str]:
         if self.user_agent is None:
@@ -227,7 +214,7 @@ class ParentScraper:
                             lan: str,
                             region: str) -> List[Dict[str, Any]]:
 
-        print("[NewsScraper] RSS empty → falling back to HTML search")
+        print("RSS empty → falling back to HTML search")
 
         html_url = (
             "https://news.google.com/search?"
@@ -239,7 +226,7 @@ class ParentScraper:
 
         if not html or ct != "html" or self.is_blocked(html):
 
-            print("[NewsScraper] HTML blocked → trying Playwright")
+            print("HTML blocked → trying Playwright")
 
             success = await self.goto(html_url)
 
@@ -298,7 +285,7 @@ class ParentScraper:
                 return entry
 
             # Step 2: Playwright fallback
-            print("[NewsScraper] HTTP blocked → Playwright:", url)
+            print("HTTP blocked → Playwright:", url)
 
             success = await self.goto(url)
 
@@ -427,56 +414,6 @@ class ParentScraper:
 
         return text if len(text) > 50 else None
 
-        #
-        # async def _resolve_real_url(self, wrapper_url: str) -> Optional[str]:
-        #     try:
-        #         if self.context is None:
-        #             return None
-        #         # Extract article ID
-        #         article_id: str = wrapper_url.split("/articles/")[1].split("?")[0]
-        #         redirect_url: str = f"https://news.google.com/articles/{article_id}"
-        #
-        #         resp = await self.context.request.get(
-        #             redirect_url,
-        #             timeout=15000,
-        #             max_redirects=10
-        #         )
-        #         if not resp or not resp.ok or not resp.url:
-        #             return None
-        #         if resp.ok:
-        #             final = resp.url
-        #
-        #             # ensure we escaped Google News
-        #             if "news.google.com" not in final:
-        #                 return final
-        #
-        #     except Exception as e:
-        #         print(f"[NewsScraper] resolve error: {e}")
-        #
-        #     return None
-
-        # async def fetch_rss(self, url: str) -> Optional[str]:
-        #     if self.user_agent is None:
-        #         raise RuntimeError("User-Agent not initialized")
-        #     async with httpx.AsyncClient(timeout=15) as client:
-        #         resp = await client.get(
-        #             url,
-        #             headers={
-        #                 "User-Agent": self.user_agent,
-        #                 "Accept": "application/rss+xml",
-        #                 "Accept-Language": "en-US,en;q=0.9",
-        #                 "Referer": "https://news.google.com/",
-        #                 "Cache-Control": "no-cache",
-        #                 "Pragma": "no-cache",
-        #             }
-        #         )
-        #         if not resp or not resp.status_code:
-        #             return None
-        #         if resp.status_code == 200:
-        #             return resp.text
-        #     return None
-        # @staticmethod
-
     def resolve_google_news_url(self, wrapper_url: str) -> Optional[str]:
         """Resolve a Google News wrapper URL to the final article URL.
             The function attempts to rotate through the configured proxy (if any)
@@ -487,7 +424,7 @@ class ParentScraper:
             proxy_str: Optional[str] = self.proxy_manager.get_rotating_proxy_url()
             decoded: Any
             if not proxy_str:
-                print("[NewsScraper] No proxy configured for decoder")
+                print("No proxy configured for decoder")
                 decoded = gnewsdecoder(wrapper_url)
             else:
                 decoded = gnewsdecoder(
