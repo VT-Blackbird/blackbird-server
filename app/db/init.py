@@ -46,6 +46,14 @@ def seed_sources():
                 base_url="https://news.google.com/rss/search?",
                 is_enabled=True,
             ),
+            Source(
+                id=3,
+                name="USA.gov",
+                source_type=SourceType.OFFICIAL,
+                extraction_method=ExtractionMethod.STATIC_HTML,
+                base_url="https://search.usa.gov/search?affiliate=aflink_all&query=",
+                is_enabled=True
+            ),
         ]
 
         for source_data in initial_sources:
