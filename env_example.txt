@@ -1,0 +1,5 @@
+# Boilerplate Database Credentials
+# If not specified, the compose file will use these defaults
+DB_USER=postgres
+DB_PASSWORD=password
+DB_NAME=blackbird
