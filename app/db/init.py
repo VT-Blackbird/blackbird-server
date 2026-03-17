@@ -1,13 +1,11 @@
 import logging
 
-from sqlmodel import Session, SQLModel, select  # SQLModel comes from the library
+from sqlmodel import Session, SQLModel, select
 
 from app.db.session import engine
-
-# Our custom models and enums come from our local package
 from app.models import ExtractionMethod, Source, SourceType
 
-# Setup logging to see init progress in docker logs
+# Logging to see init progress in docker logs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

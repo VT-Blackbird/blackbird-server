@@ -26,7 +26,6 @@ class ExtractionMethod(str, Enum):
 
 
 class Source(SQLModel, table=True):
-    # Fix for Pydantic v2 Enum validation
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -38,7 +37,6 @@ class Source(SQLModel, table=True):
 
     # Relationships
     articles: List["Article"] = Relationship(back_populates="source")
-    # CHANGED: link_model is now the class SearchSource, not the string "SearchSource"
     searches: List["Search"] = Relationship(
         back_populates="sources", link_model=SearchSource
     )
