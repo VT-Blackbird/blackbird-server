@@ -50,6 +50,9 @@ class GovScraper(ParentScraper):
                 parsed = self.parse_rss(content)
             if parsed:
                 all_results.extend(parsed)
+            elif parsed == []:
+                print("No Content Found... Try refining Search Query")
+                continue
             else:
                 print(f"unsupported content type: {content_type}")
                 continue
