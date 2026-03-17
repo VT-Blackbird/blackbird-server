@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def init_db():
+def init_db() -> None:
     """
     Creates tables based on models and seeds initial data.
     """
@@ -22,7 +22,7 @@ def init_db():
     seed_sources()
 
 
-def seed_sources():
+def seed_sources() -> None:
     """
     Ensures the 'Source' table has the necessary entries for the scrapers.
     """
@@ -50,7 +50,7 @@ def seed_sources():
                 source_type=SourceType.OFFICIAL,
                 extraction_method=ExtractionMethod.STATIC_HTML,
                 base_url="https://search.usa.gov/search?affiliate=aflink_all&query=",
-                is_enabled=True
+                is_enabled=True,
             ),
         ]
 

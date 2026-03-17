@@ -1,15 +1,24 @@
-from sqlmodel import Session, select
+from typing import Any, List, Type
+
+from sqlmodel import Session, SQLModel, select
 
 from app.db.session import engine
 from app.models import Article, Proxy, ProxyLog, Search, SearchSource, Source
 
 
-def inspect_tables():
+def inspect_tables() -> None:
     """
     Connects to the database and prints the first 5 entries of every table.
     """
-    
-    models = [Search, Source, Article, Proxy, ProxyLog, SearchSource]
+
+    models: List[Type[SQLModel]] = [
+        Search,
+        Source,
+        Article,
+        Proxy,
+        ProxyLog,
+        SearchSource,
+    ]
 
     with Session(engine) as session:
         print("\n" + "=" * 50)
@@ -24,7 +33,7 @@ def inspect_tables():
             )
             print(f"--- TABLE: {table_name} ---")
 
-            statement = select(model).limit(5)
+            statement: Any = select(model).limit(5)
             results = session.exec(statement).all()
 
             if not results:
