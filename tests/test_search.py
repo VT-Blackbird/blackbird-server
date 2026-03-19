@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.search_service import search_service
 
 client = TestClient(app)
-
 
 def test_perform_search_success()->None:
     """
@@ -40,3 +40,60 @@ def test_search_validation_error()->None:
     # Validation happens at the Schema level, so FastAPI returns 422
     assert response.status_code == 422
     assert "detail" in response.json()
+
+
+def test_search_with_invalid_platform() -> None:
+    """
+    Test that including a non-existent platform doesn't crash the service.
+    """
+    payload = {
+        "query": "Artificial Intelligence",
+        "limit": 10,
+        "platforms": ["Gov", "FakePlatform123"]  #Fake platform does not exist
+    }
+
+    response = client.post("/api/v1/search/", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Response should still return results from 'Gov'
+    assert isinstance(data["results"], list)
+    if data["total_count"] > 0:
+        assert data["results"][0]["source"] == "USA.gov"
+
+
+def test_search_limit_and_variety() -> None:
+    """
+    Test that the limit is strictly enforced and multiple sources can coexist.
+    """
+    limit = 3
+    payload = {
+        "query": "tech",
+        "limit": limit,
+        "platforms": ["News", "Reddit"]
+    }
+
+    response = client.post("/api/v1/search/", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+
+    # Assert limit is respected
+    assert len(data["results"]) <= limit
+    assert data["total_count"] <= limit
+
+
+def test_map_to_schema_edge_cases() -> None:
+    # 1. Test invalid date parsing (Hits line 134/142-145)
+    bad_data = {
+        "content": None,
+        "published_at": "not-a-date-string",
+        "source_id": 999,  # Testing an unknown source_id
+        "title": "Edge Case"
+    }
+    result = search_service._map_to_schema(bad_data)
+
+    # Assertions to ensure the fallbacks worked
+    assert result.content == "Edge Case"  # Fell back to title
+    assert result.source == "Web"  # Fell back to default source
+    assert result.published_at is not None  # Fell back to now()

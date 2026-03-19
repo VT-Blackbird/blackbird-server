@@ -1,4 +1,5 @@
 import asyncio
+import random
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List
@@ -29,8 +30,12 @@ class SearchService:
             "Gov": GovScraper
         }
 
+    # app/services/search_service.py
+
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
+
+        # Ensure we use the new Dataclass structure correctly
         worker_query = ScraperQuery(text=request.query)
 
         tasks = []
@@ -39,38 +44,36 @@ class SearchService:
             if not scraper_class:
                 continue
 
-            # Setup config based on platform
             ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                   " (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
             if platform == "Reddit":
                 ua = "linux:blackbird-backend:v1.0.0 (by /u/vtblackbird)"
 
-            # Instantiate and add task
-            scraper_inst = scraper_class(user_agent=ua)
+            # The new ParentScraper __init__ takes (proxies, user_agent)
+            scraper_inst = scraper_class(proxies=[], user_agent=ua)
+
+            # The new .run() orchestrates everything (setup -> scrape -> close)
             tasks.append(scraper_inst.run(worker_query, "en-US", "US"))
 
-        # 3. Run all scrapers in parallel
-        # This is critical so the user doesn't wait for them sequentially
         scraper_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # 4. Flatten and Format results
         final_results: List[SearchResultItem] = []
 
-        # Zip the platform names with the results so you know which is which
         for platform_name, platform_output in zip(request.platforms, scraper_results):
-            print(f"\n--- [DEBUG] Raw Output for Platform: {platform_name} ---")
-
             if isinstance(platform_output, Exception):
-                print(f"Error occurred in {platform_name}: {platform_output}")
+                print(f"Error in {platform_name}: {platform_output}")
                 continue
 
-            # This prints the whole list of dicts returned by that specific scraper
-            print(platform_output)
+            # CRITICAL: New scrapers might return None if they fail internally
+            if platform_output is None:
+                print(f"Platform {platform_name} returned no data.")
+                continue
 
             if isinstance(platform_output, list):
                 for item in platform_output:
-                    # Optional: Print individual items if the list is too long
-                    # print(f"Processing item: {item.get('title')}")
+                    # Defensive check: skip empty/malformed dicts
+                    if not item or not isinstance(item, dict):
+                        continue
                     final_results.append(self._map_to_schema(item))
 
         # --- LIMITING & SORTING LOGIC ---
@@ -81,14 +84,18 @@ class SearchService:
             if res.url not in seen_urls:
                 unique_results.append(res)
                 seen_urls.add(res.url)
-        final_results = unique_results
-        # 1. Sort by published_at (Descending: Newest first)
-        # Note: Since many are placeholders, this is a setup for when we add real dates.
-        final_results.sort(key=lambda x: x.published_at, reverse=True)
 
-        # 2. Apply the limit from the frontend request
+        # 2. SHUFFLE for variety
+        # This prevents the list from being dominated by a single scraper's results
+        random.shuffle(unique_results)
+
+        # 3. Apply the limit from the frontend request
         limit = request.limit if request.limit > 0 else 10
-        limited_results = final_results[:limit]
+        limited_results = unique_results[:limit]
+
+        # 4. OPTIONAL: Sort the final limited subset by date
+        # This keeps the final 10-20 items looking organized for the UI
+        limited_results.sort(key=lambda x: x.published_at, reverse=True)
 
         execution_time = (time.time() - start_time) * 1000
 
@@ -102,12 +109,18 @@ class SearchService:
 
     @staticmethod
     def _map_to_schema(raw_item: Dict[str, Any]) -> SearchResultItem:
-        # 1. Clean HTML out of the content (especially for News)
-        raw_content = raw_item.get("content", "")
-        # Use BeautifulSoup to get just the text
+        # 1. Clean HTML out of the content (Defensive Check added)
+        raw_content = raw_item.get("content")
+
+        # If content is None or not a string, fallback to empty string or title
+        if not isinstance(raw_content, (str, bytes)):
+            # Fallback to title if content is missing, or just an empty string
+            raw_content = raw_item.get("title", "")
+
+        # Now BeautifulSoup is guaranteed to get a string
         clean_content = BeautifulSoup(raw_content, "lxml").get_text(separator=" ")
 
-        # 2. Truncate long content (especially for Reddit walls of text)
+        # 2. Truncate long content
         if len(clean_content) > 300:
             clean_content = clean_content[:297] + "..."
 
