@@ -19,6 +19,20 @@ jobs:
 
       - name: Build and Run CI
         run: |
-          # We use the exact same script you just perfected!
-          # We use --build to ensure the latest requirements are installed
+          docker compose build backend
           docker compose run --rm backend bash ./scripts/check.sh
+
+  code-coverage:
+    name: Code Coverage Check (Min 60%)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Run Coverage
+        run: |
+          docker compose build backend
+          docker compose run --rm backend bash ./scripts/coverage.sh

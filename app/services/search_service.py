@@ -5,8 +5,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from bs4 import BeautifulSoup
-
-#SentimentScores,
 from dateutil import parser
 
 from app.schemas.search_request import SearchRequest
@@ -29,8 +27,6 @@ class SearchService:
             "Reddit": SocialScraper,
             "Gov": GovScraper
         }
-
-    # app/services/search_service.py
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
@@ -85,7 +81,7 @@ class SearchService:
                 unique_results.append(res)
                 seen_urls.add(res.url)
 
-        # 2. SHUFFLE for variety
+        #Shuffle for variety
         # This prevents the list from being dominated by a single scraper's results
         random.shuffle(unique_results)
 
@@ -93,8 +89,7 @@ class SearchService:
         limit = request.limit if request.limit > 0 else 10
         limited_results = unique_results[:limit]
 
-        # 4. OPTIONAL: Sort the final limited subset by date
-        # This keeps the final 10-20 items looking organized for the UI
+        # 4. Sort the final limited subset by date
         limited_results.sort(key=lambda x: x.published_at, reverse=True)
 
         execution_time = (time.time() - start_time) * 1000
@@ -109,7 +104,7 @@ class SearchService:
 
     @staticmethod
     def _map_to_schema(raw_item: Dict[str, Any]) -> SearchResultItem:
-        # 1. Clean HTML out of the content (Defensive Check added)
+        #Clean HTML out of the content (Defensive Check added)
         raw_content = raw_item.get("content")
 
         # If content is None or not a string, fallback to empty string or title
@@ -117,7 +112,7 @@ class SearchService:
             # Fallback to title if content is missing, or just an empty string
             raw_content = raw_item.get("title", "")
 
-        # Now BeautifulSoup is guaranteed to get a string
+        # Now BeautifulSoup is guaranteed a string
         clean_content = BeautifulSoup(raw_content, "lxml").get_text(separator=" ")
 
         # 2. Truncate long content
@@ -144,7 +139,7 @@ class SearchService:
                 # If parsing fails, use now() as a safety net
                 parsed_date = datetime.now(timezone.utc)
 
-        # 4. Source Mapping
+        #Source Mapping
         source_map = {1: "Reddit", 2: "Google News", 3: "USA.gov"}
         source_id = raw_item.get("source_id")
         source_name = source_map.get(int(source_id) if source_id is not None
@@ -156,7 +151,7 @@ class SearchService:
             title=raw_item.get("title"),
             content=clean_content,
             url=raw_item.get("url", ""),
-            published_at=parsed_date,  # Now a valid datetime object
+            published_at=parsed_date,
             sentiment=None
         )
 
