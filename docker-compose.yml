@@ -1,15 +1,30 @@
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: blackbird-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-blackbird}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build: .
     container_name: blackbird-backend
-
     ports:
       - "8000:8000"
-
+    depends_on:
+      - db
     volumes:
       - .:/app
-
     environment:
       PYTHONPATH: /app
-
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-blackbird}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  postgres_data:

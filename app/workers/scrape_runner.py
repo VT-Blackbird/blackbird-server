@@ -15,13 +15,15 @@ from app.workers.scrapers.social_scraper import SocialScraper
 
 QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
-    Query(text="250 AND AF"),
-    # Query(text="Quincentennial"),
-    Query(text="CCA")
+    Query(text="AFA")
+    # # Query(text="DOW AI"),
+    # Query(text="Drone CCA")
 ]
 
 # No proxies implemented yet, but you can add them here if needed
 # country_code = "US"     # User can change this to FR, DE, GB, etc.
+#Proxy Manager, rotation
+
 PROXIES: List[ProxyConfig] = [
     {
         "server": "23.95.150.145:6114",  # enter your password

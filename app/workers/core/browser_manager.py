@@ -32,8 +32,18 @@ class BrowserManager:
 
         if proxy:
             launch_args["proxy"] = proxy
-
-        self.browser = await self.playwright.chromium.launch(**launch_args)
+        if proxy is None:
+            print("Proxy cannot be None.")
+            return None
+        # self.browser = await self.playwright.chromium.launch(**launch_args)
+        self.browser = await self.playwright.chromium.launch(
+            proxy={
+                "server": f"http://{proxy['server']}",
+                "username": proxy["username"],
+                "password": proxy["password"],
+            }
+        )
+        assert self.browser is not None, "Browser not initialized."
         return self.browser
 
     # Creates browser context + optional user agent (for identity)
