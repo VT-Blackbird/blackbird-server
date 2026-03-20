@@ -23,7 +23,7 @@ jobs:
           docker compose run --rm backend bash ./scripts/check.sh
 
   code-coverage:
-    name: Code Coverage Check (Min 60%)
+    name: Code Coverage Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
