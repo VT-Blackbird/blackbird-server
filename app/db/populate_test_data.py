@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 from typing import Any, Dict, List
@@ -9,6 +10,8 @@ from app.models import Article, Search
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+TEST_QUERY = "Artificial Intelligence"
 
 
 def populate_test_articles(file_path: str = "candidate_test_articles.json") -> None:
@@ -23,14 +26,13 @@ def populate_test_articles(file_path: str = "candidate_test_articles.json") -> N
         return
 
     with Session(engine) as session:
-        test_query = "Artificial Intelligence"
-        statement = select(Search).where(Search.query_text == test_query)
+        statement = select(Search).where(Search.query_text == TEST_QUERY)
         search_record = session.exec(statement).first()
 
         if not search_record:
-            logger.info(f"Creating new Search record for: {test_query}")
+            logger.info(f"Creating new Search record for: {TEST_QUERY}")
             search_record = Search(
-                query_text=test_query, request_limit=20, all_sources_requested=True
+                query_text=TEST_QUERY, request_limit=20, all_sources_requested=True
             )
             session.add(search_record)
             session.commit()
@@ -58,5 +60,33 @@ def populate_test_articles(file_path: str = "candidate_test_articles.json") -> N
         logger.info("Test data population complete.")
 
 
+def clear_test_data() -> None:
+    """
+    Removes the test Search record and relies on cascade to delete linked Articles.
+    """
+    with Session(engine) as session:
+        statement = select(Search).where(Search.query_text == TEST_QUERY)
+        search_record = session.exec(statement).first()
+
+        if search_record:
+            logger.info(
+                f"Removing Search record: '{TEST_QUERY}' and associated articles..."
+            )
+            session.delete(search_record)
+            session.commit()
+            logger.info("Cleanup complete.")
+        else:
+            logger.info(f"No test data found for query: '{TEST_QUERY}'")
+
+
 if __name__ == "__main__":
-    populate_test_articles()
+    parser = argparse.ArgumentParser(description="Manage database test data.")
+    parser.add_argument(
+        "--clear", action="store_true", help="Clear test data instead of populating."
+    )
+    args = parser.parse_args()
+
+    if args.clear:
+        clear_test_data()
+    else:
+        populate_test_articles()
