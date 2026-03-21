@@ -3,10 +3,9 @@ import random
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List
-
-from bs4 import BeautifulSoup
 from dateutil import parser
-
+from sqlmodel import Session
+from app.ml.cleaner import DataCleaner
 from app.schemas.search_request import SearchRequest
 from app.schemas.search_response import (
     SearchResponse,
@@ -16,7 +15,8 @@ from app.workers.core.query import Query as ScraperQuery
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
 from app.workers.scrapers.social_scraper import SocialScraper
-
+from app.db.session import engine
+from app.models import Search, Article, SearchSource
 
 class SearchService:
     def __init__(self) -> None:
@@ -27,50 +27,99 @@ class SearchService:
             "Reddit": SocialScraper,
             "Gov": GovScraper
         }
+        self.cleaner = DataCleaner()
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
+        source_id_map = {"Reddit": 1, "News": 2, "Gov": 3}
 
-        # Ensure we use the new Dataclass structure correctly
-        worker_query = ScraperQuery(text=request.query)
+        #Used to see if all sources are requested
+        all_available = set(self.platforms_map.keys())
+        requested = set(request.platforms)
+        is_full_search = all_available.issubset(requested)
 
-        tasks = []
-        for platform in request.platforms:
-            scraper_class = self.platforms_map.get(platform)
-            if not scraper_class:
-                continue
+        #Open a database session
+        with Session(engine) as session:
+            #Create and save search record
+            db_search = Search(query_text=request.query,
+                               request_limit = request.request_limit,
+                               all_sources_requested = is_full_search
+                               )
 
-            ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                  " (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-            if platform == "Reddit":
-                ua = "linux:blackbird-backend:v1.0.0 (by /u/vtblackbird)"
+            session.add(db_search)
+            session.flush()
+            #Link the source to the SearchSource bridge table
 
-            # The new ParentScraper __init__ takes (proxies, user_agent)
-            scraper_inst = scraper_class(proxies=[], user_agent=ua)
+            for platform in request.platforms:
+                source_id = source_id_map.get(platform)
+                if source_id:
+                    bridge = SearchSource(search_id=db_search.id, source_id=source_id)
+                    session.add(bridge)
 
-            # The new .run() orchestrates everything (setup -> scrape -> close)
-            tasks.append(scraper_inst.run(worker_query, "en-US", "US"))
+            # Ensure we use the new Dataclass structure correctly
+            worker_query = ScraperQuery(text=request.query)
 
-        scraper_results = await asyncio.gather(*tasks, return_exceptions=True)
+            tasks = []
+            for platform in request.platforms:
+                scraper_class = self.platforms_map.get(platform)
+                if not scraper_class:
+                    continue
 
-        final_results: List[SearchResultItem] = []
+                ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                      " (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+                if platform == "Reddit":
+                    ua = "linux:blackbird-backend:v1.0.0 (by /u/vtblackbird)"
 
-        for platform_name, platform_output in zip(request.platforms, scraper_results):
-            if isinstance(platform_output, Exception):
-                print(f"Error in {platform_name}: {platform_output}")
-                continue
+                # The new ParentScraper __init__ takes (proxies, user_agent)
+                scraper_inst = scraper_class(proxies=[], user_agent=ua)
 
-            # CRITICAL: New scrapers might return None if they fail internally
-            if platform_output is None:
-                print(f"Platform {platform_name} returned no data.")
-                continue
+                # The new .run() orchestrates everything (setup -> scrape -> close)
+                tasks.append(scraper_inst.run(worker_query, "en-US", "US"))
 
-            if isinstance(platform_output, list):
-                for item in platform_output:
-                    # Defensive check: skip empty/malformed dicts
-                    if not item or not isinstance(item, dict):
-                        continue
-                    final_results.append(self._map_to_schema(item))
+            scraper_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            final_results: List[SearchResultItem] = []
+
+            for platform_name, platform_output in zip(request.platforms, scraper_results):
+                if isinstance(platform_output, Exception):
+                    print(f"Error in {platform_name}: {platform_output}")
+                    continue
+
+                # CRITICAL: New scrapers might return None if they fail internally
+                if platform_output is None:
+                    print(f"Platform {platform_name} returned no data.")
+                    continue
+
+                if isinstance(platform_output, list):
+                    for item in platform_output:
+                        # Defensive check: skip empty/malformed dicts
+                        if not item or not isinstance(item, dict):
+                            continue
+
+                        # --- NEW CLEANING & FILTERING LOGIC ---
+                        raw_text = item.get("content", "") or item.get("title", "")
+
+                        # 1. Check Language (Filter out non-english languages)
+                        if not self.cleaner.is_english(raw_text):
+                            continue  # Skip non-English articles
+
+                        # 2. Clean the full content (Removes URLs, HTML, fixes whitespace)
+                        # Done before schema mapping
+                        item["content"] = self.cleaner.clean(raw_text)
+                        #Create the article db object after it is cleaned
+                        db_article = Article(
+                            title=item["title"],
+                            content=item["content"],  # This is the FULL cleaned text
+                            url=item["url"],
+                            published_at=item.get("published_at"),
+                            search_id=db_search.id,
+                            source_id=source_id_map.get(platform_name, 0)
+                        )
+                        session.add(db_article)
+                        final_results.append(self._map_to_schema(item))
+            session.commit()
+
+
 
         # --- LIMITING & SORTING LOGIC ---
         # Simple deduplication by URL
@@ -85,39 +134,36 @@ class SearchService:
         # This prevents the list from being dominated by a single scraper's results
         random.shuffle(unique_results)
 
-        # 3. Apply the limit from the frontend request
+        #Apply the limit from the frontend request
         limit = request.limit if request.limit > 0 else 10
         limited_results = unique_results[:limit]
 
-        # 4. Sort the final limited subset by date
+        #Sort the final limited subset by date
         limited_results.sort(key=lambda x: x.published_at, reverse=True)
 
         execution_time = (time.time() - start_time) * 1000
-
+        print(limited_results)
         return SearchResponse(
             total_count=len(limited_results),
             execution_time_ms=round(execution_time, 2),
             results=limited_results,
         )
 
-        # 2. TODO: Call ML models (ml/sentiment.py)
+
 
     @staticmethod
     def _map_to_schema(raw_item: Dict[str, Any]) -> SearchResultItem:
-        #Clean HTML out of the content (Defensive Check added)
-        raw_content = raw_item.get("content")
+
+        content = raw_item.get("content")
 
         # If content is None or not a string, fallback to empty string or title
-        if not isinstance(raw_content, (str, bytes)):
+        if not isinstance(content, (str, bytes)):
             # Fallback to title if content is missing, or just an empty string
-            raw_content = raw_item.get("title", "")
-
-        # Now BeautifulSoup is guaranteed a string
-        clean_content = BeautifulSoup(raw_content, "lxml").get_text(separator=" ")
+            content = raw_item.get("title", "")
 
         # 2. Truncate long content
-        if len(clean_content) > 300:
-            clean_content = clean_content[:297] + "..."
+        if len(content) > 300:
+            content = content[:297] + "..."
 
         raw_date = raw_item.get("published_at")
         parsed_date: datetime
@@ -145,11 +191,13 @@ class SearchService:
         source_name = source_map.get(int(source_id) if source_id is not None
                                      else 0, "Web")
 
+        # 2. TODO: Call ML models (ml/sentiment.py)
+
         return SearchResultItem(
             id=str(hash(raw_item.get("url", ""))),
             source=source_name,
             title=raw_item.get("title"),
-            content=clean_content,
+            content=content,
             url=raw_item.get("url", ""),
             published_at=parsed_date,
             sentiment=None

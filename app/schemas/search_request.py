@@ -15,5 +15,5 @@ class SearchRequest(BaseModel):
     )
 
     platforms: List[str] = Field(
-        default=["Reddit", "X"], description="Which sites to scrape"
+        default=["Reddit", "Gov", "News"], description="Which sites to scrape"
     )
