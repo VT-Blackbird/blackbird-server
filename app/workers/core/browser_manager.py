@@ -33,8 +33,9 @@ class BrowserManager:
         if proxy:
             launch_args["proxy"] = proxy
         if proxy is None:
-            print("Proxy cannot be None.")
-            return None
+            print("No proxy provided, launching local browser...")
+            self.browser = await self.playwright.chromium.launch(**launch_args)
+            return self.browser
         # self.browser = await self.playwright.chromium.launch(**launch_args)
         self.browser = await self.playwright.chromium.launch(
             proxy={
