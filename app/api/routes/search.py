@@ -11,7 +11,7 @@ router = APIRouter()
 async def perform_search(request: SearchRequest)-> SearchResponse:
     # If request is invalid, FastAPI returns 422 before even getting here.
     try:
-        return search_service.execute_search(request)
+        return await search_service.execute_search(request)
     except ValueError as e:
         # Catch specific business logic errors (like an unsupported platform)
         raise HTTPException(status_code=400, detail=str(e))

@@ -109,8 +109,9 @@ The database uses a Docker volume named `postgres_data` to ensure searches and a
 
 | Action | Command | Notes |
 | :--- | :--- | :--- |
-| Runs checks locally | `sudo ./scripts/check.sh` | Runs quality assurance tests (Ruff, MyPy, PyTest) |
+| Runs checks locally | `sudo docker compose run --rm backend bash scripts/check.sh` | Runs quality assurance tests (Ruff, MyPy, PyTest) |
 | Fast formatting | `sudo docker compose run --rm backend ruff check . --fix` | Fixes style errors fast |
+| Code Coverage | `sudo docker compose run --rm backend bash scripts/coverage.sh` | Fails if < 60%. Used as a gate for production. |
 
 ---
 
