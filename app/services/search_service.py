@@ -3,9 +3,13 @@ import random
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List
+
 from dateutil import parser
 from sqlmodel import Session
+
+from app.db.session import engine
 from app.ml.cleaner import DataCleaner
+from app.models import Article, Search, SearchSource
 from app.schemas.search_request import SearchRequest
 from app.schemas.search_response import (
     SearchResponse,
@@ -15,8 +19,7 @@ from app.workers.core.query import Query as ScraperQuery
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
 from app.workers.scrapers.social_scraper import SocialScraper
-from app.db.session import engine
-from app.models import Search, Article, SearchSource
+
 
 class SearchService:
     def __init__(self) -> None:
@@ -42,7 +45,7 @@ class SearchService:
         with Session(engine) as session:
             #Create and save search record
             db_search = Search(query_text=request.query,
-                               request_limit = request.request_limit,
+                               request_limit = request.limit,
                                all_sources_requested = is_full_search
                                )
 
@@ -80,7 +83,8 @@ class SearchService:
 
             final_results: List[SearchResultItem] = []
 
-            for platform_name, platform_output in zip(request.platforms, scraper_results):
+            for platform_name, platform_output in zip(request.platforms,
+                                                      scraper_results):
                 if isinstance(platform_output, Exception):
                     print(f"Error in {platform_name}: {platform_output}")
                     continue
@@ -103,7 +107,7 @@ class SearchService:
                         if not self.cleaner.is_english(raw_text):
                             continue  # Skip non-English articles
 
-                        # 2. Clean the full content (Removes URLs, HTML, fixes whitespace)
+                        # Clean the full content (Removes URLs, HTML, fix whitespace)
                         # Done before schema mapping
                         item["content"] = self.cleaner.clean(raw_text)
                         #Create the article db object after it is cleaned

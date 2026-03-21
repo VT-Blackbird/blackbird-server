@@ -1,5 +1,6 @@
 import re
-from langdetect import detect, DetectorFactory
+
+from langdetect import DetectorFactory, detect
 
 # Ensures consistent results across runs
 DetectorFactory.seed = 0
@@ -13,7 +14,7 @@ class DataCleaner:
             if len(text) < 20:
                 return True  # Too short to reliably detect, assume OK
 
-            return detect(text) == 'en'
+            return bool(detect(text) == 'en')
         except Exception:
             # If detection fails (e.g., only emojis/numbers), treat as non-English
             return False
