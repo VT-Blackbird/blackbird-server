@@ -15,9 +15,10 @@ from app.workers.scrapers.social_scraper import SocialScraper
 
 QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
-    Query(text="AFA")
-    # # Query(text="DOW AI"),
+    # Query(text="AFA")
+    # Query(text="DOW AI"),
     # Query(text="Drone CCA")
+    Query(text="Artificial Intelligence"),
 ]
 
 # No proxies implemented yet, but you can add them here if needed

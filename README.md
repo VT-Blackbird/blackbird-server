@@ -83,6 +83,17 @@ sudo docker compose exec backend python3 -m app.db.inspect_data
 ```
 Currently, this should show all tables as empty except for the initial source table entries.
 
+### 4. Populating Data for Testing
+To populate the database with test data, you can run the following command:
+```bash
+sudo docker compose exec backend python3 -m app.db.populate_test_data
+```
+This currently adds 9 example articles (3 per scraper) from the query "Artificial Intelligence". Running the inspection command again will show these entries in the database in the Search and Article tables.
+
+To delete the test data, you can run:
+```bash
+sudo docker compose exec backend python3 -m app.db.populate_test_data --clear
+```
 ---
 
 ## Data Persistence & Volumes
