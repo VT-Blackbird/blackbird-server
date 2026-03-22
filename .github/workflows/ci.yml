@@ -20,6 +20,9 @@ jobs:
       - name: Build and Run CI
         run: |
           docker compose build backend
+          docker compose up -d db
+          sleep 10
+          docker compose run --rm backend python3 -m app.db.init
           docker compose run --rm backend bash ./scripts/check.sh
 
   code-coverage:
@@ -35,4 +38,7 @@ jobs:
       - name: Build and Run Coverage
         run: |
           docker compose build backend
+          docker compose up -d db
+          sleep 10
+          docker compose run --rm backend python3 -m app.db.init
           docker compose run --rm backend bash ./scripts/coverage.sh
