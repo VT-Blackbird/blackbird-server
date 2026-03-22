@@ -53,11 +53,13 @@ class SearchService:
             session.flush()
             #Link the source to the SearchSource bridge table
 
-            for platform in request.platforms:
-                source_id = source_id_map.get(platform)
-                if source_id:
-                    bridge = SearchSource(search_id=db_search.id, source_id=source_id)
-                    session.add(bridge)
+            if not is_full_search:
+                for platform in request.platforms:
+                    source_id = source_id_map.get(platform)
+                    if source_id:
+                        bridge = SearchSource(search_id=db_search.id,
+                                              source_id=source_id)
+                        session.add(bridge)
 
             # Ensure we use the new Dataclass structure correctly
             worker_query = ScraperQuery(text=request.query)
