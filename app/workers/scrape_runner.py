@@ -17,8 +17,8 @@ QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
     # Query(text="AFA")
     # Query(text="DOW AI"),
-    # Query(text="Drone CCA")
-    Query(text="Artificial Intelligence"),
+    Query(text="Drone CCA")
+    # Query(text="Artificial Intelligence")
 ]
 
 # No proxies implemented yet, but you can add them here if needed
@@ -27,33 +27,75 @@ QUERIES = [
 
 PROXIES: List[ProxyConfig] = [
     {
-        "server": "23.95.150.145:6114",  # enter your password
-        "username": "glsdbmdq",
-        "password": "b0p2nqm0pc47",
-        "region": "US",  # generally country
-        "language": "en-US"
-    },
-    {
-        "server": "198.23.239.134:6540",
-        "username": "glsdbmdq",
+        "server": "38.55.72.2:80",
+        "username": "glsdbmdq-us-1",
         "password": "b0p2nqm0pc47",
         "region": "US",
         "language": "en-US"
     },
     {
-        "server": "107.172.163.27:6543",
-        "username": "glsdbmdq",
+        "server": "37.120.205.78:80",
+        "username": "glsdbmdq-us-2",
         "password": "b0p2nqm0pc47",
         "region": "US",
         "language": "en-US"
     },
     {
-        "server": "216.10.27.159:6837",
-        "username": "glsdbmdq",
+        "server": "162.218.95.11:80",
+        "username": "glsdbmdq-us-3",
         "password": "b0p2nqm0pc47",
         "region": "US",
         "language": "en-US"
-    }
+    },
+    {
+        "server": "193.19.206.5:80",
+        "username": "glsdbmdq-us-4",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "198.20.161.66:80",
+        "username": "glsdbmdq-us-5",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "192.3.28.110:80",
+        "username": "glsdbmdq-us-6",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "209.127.184.242:80",
+        "username": "glsdbmdq-us-7",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "38.120.82.27:80",
+        "username": "glsdbmdq-us-8",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "38.55.72.2:80",
+        "username": "glsdbmdq-us-9",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
+    {
+        "server": "37.120.205.78:80",
+        "username": "glsdbmdq-us-10",
+        "password": "b0p2nqm0pc47",
+        "region": "US",
+        "language": "en-US"
+    },
 ]
 # # PROXIES = None #disable proxies for now, not fully implemented yet
 # 23.95.150.145:6114:glsdbmdq:b0p2nqm0pc47
@@ -71,7 +113,7 @@ USER_AGENT: str = (
 
 
 async def run_scraper() ->None:
-    scrapers: List[Any] = [
+    scrapers: List[Any] = {
         NewsScraper(
             proxies=PROXIES,
             user_agent=USER_AGENT,
@@ -84,7 +126,7 @@ async def run_scraper() ->None:
             proxies=PROXIES,
             user_agent=USER_AGENT,
         ),
-    ]
+    }
 
     all_results :List[Any]= []
 

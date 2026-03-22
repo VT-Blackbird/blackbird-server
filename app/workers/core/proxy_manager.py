@@ -75,6 +75,7 @@ class ProxyManager:
         except Exception as e:
             print("error with get_proxy in url func. ", e)
         if proxy is None:
+            print("Proxy is None")
             return None
         #must be single quotes to access proxy key
         pr:str =""

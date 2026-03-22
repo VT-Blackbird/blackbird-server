@@ -41,7 +41,6 @@ class NewsScraper(ParentScraper):
                 print("[NewsScraper] No articles found")
                 continue
 
-            print(f"[NewsScraper] Parsed {len(parsed)} articles")
 
             # -----------------------------
             # Resolve Google News URLs
@@ -54,7 +53,16 @@ class NewsScraper(ParentScraper):
             # -----------------------------
             enriched = await self.fetch_articles(resolved)
 
+            # Fix values in enriched first
+            start_index: int = len(all_results)
             all_results.extend(enriched)
+
+            for i, (p, e) in enumerate(zip(parsed, enriched)):
+
+                content_to_fill:str = p.get("content") or p.get("title")
+                if not e.get('content') and content_to_fill:
+                    idx:int = start_index + i
+                    all_results[idx]["content"]:str = content_to_fill
 
         return all_results
 
