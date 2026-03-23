@@ -1,6 +1,5 @@
 # manages proxies for scraping tasks
-##TODO: implement proxy rotation and error handling for failed proxies,
-## TODO: integrate external service for proxy management
+
 import random
 
 # =============================================

@@ -59,10 +59,10 @@ class NewsScraper(ParentScraper):
 
             for i, (p, e) in enumerate(zip(parsed, enriched)):
 
-                content_to_fill:str = p.get("content") or p.get("title")
+                content_to_fill = p.get("content") or p.get("title")
                 if not e.get('content') and content_to_fill:
                     idx:int = start_index + i
-                    all_results[idx]["content"]:str = content_to_fill
+                    all_results[idx]["content"] = content_to_fill
 
         return all_results
 
