@@ -5,6 +5,7 @@ from typing import Any, List
 
 from app.workers.core.proxy_manager import ProxyConfig
 from app.workers.core.query import Query  # if you created one
+from app.workers.core.utils import load_proxies
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
 from app.workers.scrapers.social_scraper import SocialScraper
@@ -15,49 +16,14 @@ from app.workers.scrapers.social_scraper import SocialScraper
 
 QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
-    # Query(text="AFA")
+    # Query(text="AFA"),
     # Query(text="DOW AI"),
-    # Query(text="Drone CCA")
-    Query(text="Artificial Intelligence"),
+    Query(text="Drone CCA")
+    # Query(text="Artificial Intelligence")
 ]
 
-# No proxies implemented yet, but you can add them here if needed
-# country_code = "US"     # User can change this to FR, DE, GB, etc.
-#Proxy Manager, rotation
+PROXIES: List[ProxyConfig] = load_proxies()
 
-PROXIES: List[ProxyConfig] = [
-    {
-        "server": "23.95.150.145:6114",  # enter your password
-        "username": "glsdbmdq",
-        "password": "b0p2nqm0pc47",
-        "region": "US",  # generally country
-        "language": "en-US"
-    },
-    {
-        "server": "198.23.239.134:6540",
-        "username": "glsdbmdq",
-        "password": "b0p2nqm0pc47",
-        "region": "US",
-        "language": "en-US"
-    },
-    {
-        "server": "107.172.163.27:6543",
-        "username": "glsdbmdq",
-        "password": "b0p2nqm0pc47",
-        "region": "US",
-        "language": "en-US"
-    },
-    {
-        "server": "216.10.27.159:6837",
-        "username": "glsdbmdq",
-        "password": "b0p2nqm0pc47",
-        "region": "US",
-        "language": "en-US"
-    }
-]
-# # PROXIES = None #disable proxies for now, not fully implemented yet
-# 23.95.150.145:6114:glsdbmdq:b0p2nqm0pc47
-# 198.23.239.134:6540:glsdbmdq:b0p2nqm0pc47
 USER_AGENT: str = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -83,7 +49,7 @@ async def run_scraper() ->None:
         GovScraper(
             proxies=PROXIES,
             user_agent=USER_AGENT,
-        ),
+        )
     ]
 
     all_results :List[Any]= []

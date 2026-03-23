@@ -37,7 +37,7 @@ class ParentScraper:
         self.user_agent: Optional[str] = user_agent
         self.MAX_CONCURRENT: int = 10  # max concurrent article fetches
         # max number of articles will try to scrape full article contents from
-        self.MAX_SECONDARY_SCRAPE:int = 10
+        self.MAX_SECONDARY_SCRAPE:int =25
 
     # Main method to run the scraper, handles setup,
     # scraping, saving results, and cleanup
@@ -206,9 +206,8 @@ class ParentScraper:
     def get_curr_proxy(self) -> Optional[ProxyConfig]:
         return self.curr_proxy
 
-        ### INSERTING METHODS MOVING OVER FROM SCRAPE NEWS
-        ##Step 1B: HTML Fallback
-
+    ### INSERTING METHODS MOVING OVER FROM SCRAPE NEWS
+    ##Step 1B: HTML Fallback
     async def html_fallback(self,
                             query: Query,
                             lan: str,
@@ -436,7 +435,6 @@ class ParentScraper:
                 return None
 
             decoded_url = decoded.get("decoded_url")
-
             if not isinstance(decoded_url, str):
                 return None
 

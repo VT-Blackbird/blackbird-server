@@ -1,6 +1,5 @@
 # manages proxies for scraping tasks
-##TODO: implement proxy rotation and error handling for failed proxies,
-## TODO: integrate external service for proxy management
+
 import random
 
 # =============================================
@@ -75,6 +74,7 @@ class ProxyManager:
         except Exception as e:
             print("error with get_proxy in url func. ", e)
         if proxy is None:
+            print("Proxy is None")
             return None
         #must be single quotes to access proxy key
         pr:str =""
