@@ -38,18 +38,18 @@ USER_AGENT: str = (
 
 async def run_scraper() ->None:
     scrapers: List[Any] = [
-        NewsScraper(
-            proxies=PROXIES,
-            user_agent=USER_AGENT,
-        ),
+    #     NewsScraper(
+    #         proxies=PROXIES,
+    #         user_agent=USER_AGENT,
+    #     ),
         SocialScraper(
             proxies=PROXIES,
             user_agent=USER_AGENT,
         ),
-        GovScraper(
-            proxies=PROXIES,
-            user_agent=USER_AGENT,
-        )
+        # GovScraper(
+        #     proxies=PROXIES,
+        #     user_agent=USER_AGENT,
+        # )
     ]
 
     all_results :List[Any]= []

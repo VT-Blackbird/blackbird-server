@@ -24,7 +24,7 @@ class SocialScraper(ParentScraper):
         """
         params: Dict[str, str] = {
             "q": query.text,
-            "sort": "new",
+            "sort": "relevance",
             "t": "all",
             "hl": language,
             "gl": region,
