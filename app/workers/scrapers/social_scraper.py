@@ -62,6 +62,11 @@ class SocialScraper(ParentScraper):
                 data = await response.json()
                 self._bsky_token = data.get("accessJwt")
                 return self._bsky_token
+            elif response.status == 401:
+                print(
+                    "[SocialScraper] Authentication failed: Unauthorized (401). "
+                    "Check credentials."
+                )
             else:
                 print(f"[SocialScraper] Auth status {response.status}")
         except Exception as e:
@@ -128,6 +133,11 @@ class SocialScraper(ParentScraper):
                 )
                 if response.ok:
                     b_content = await response.text()
+                elif response.status == 401:
+                    print(
+                        "[SocialScraper] Bluesky request failed: "
+                        "Unauthorized (401). Token may have expired."
+                    )
                 else:
                     print(f"[SocialScraper] Bluesky request failed: {response.status}")
                     # If 403 occurs even with Auth, log the body for debugging
