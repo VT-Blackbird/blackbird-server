@@ -1,5 +1,16 @@
 # Boilerplate Database Credentials
+
+# DATABASE
 # If not specified, the compose file will use these defaults
 DB_USER=postgres
 DB_PASSWORD=password
 DB_NAME=blackbird
+
+# BLUESKY AUTHENTICATION
+# RECOMMENDED: Use an App Password from Settings -> Privacy and Security -> App Passwords
+BSKY_HANDLE=your_handle_here
+BSKY_APP_PASSWORD=your_app_password_here
+
+# PROXIES
+# If you want to use proxies, specify them here
+PROXIES_JSON = {[]}

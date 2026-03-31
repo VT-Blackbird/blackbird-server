@@ -64,7 +64,7 @@ server/
 ## Setup & Configuration
 
 ### 1. Environment Variables
-Refer to `env_example.txt` for the required keys. You should create or update your local `.env` file manually to ensure the database credentials match your local setup without overwriting other personal environment arguments.
+Refer to `env_example.txt` for the required keys and authentication info. You should create or update your local `.env` file manually to ensure the database credentials match your local setup without overwriting other personal environment arguments.
 
 *Note: If you change `DB_PASSWORD` after the database is already initialized, you must wipe the volume (see Persistence section below).*
 
