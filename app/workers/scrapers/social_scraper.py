@@ -2,7 +2,7 @@ import json
 import os
 import urllib.parse
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
@@ -26,7 +26,7 @@ class SocialScraper(ParentScraper):
         },
     }
 
-    # Authentication credentials (See env_example.txt for format)
+    # Authentication credentials (See env_example.txt for more info)
     BSKY_HANDLE = os.environ.get("BSKY_HANDLE", "")
     BSKY_APP_PASSWORD = os.environ.get("BSKY_APP_PASSWORD", "")
 
@@ -48,8 +48,9 @@ class SocialScraper(ParentScraper):
         )
 
         try:
+            auth_url = cast(str, self.CONFIGS["bluesky"]["auth_url"])
             response = await self.context.request.post(
-                self.CONFIGS["bluesky"]["auth_url"],
+                auth_url,
                 data={
                     "identifier": self.BSKY_HANDLE,
                     "password": self.BSKY_APP_PASSWORD,
@@ -62,16 +63,14 @@ class SocialScraper(ParentScraper):
                 self._bsky_token = data.get("accessJwt")
                 return self._bsky_token
             else:
-                print(
-                    f"[SocialScraper] Auth status {response.status}"
-                )
+                print(f"[SocialScraper] Auth status {response.status}")
         except Exception as e:
             print(f"[SocialScraper] Auth error: {e}")
 
         return None
 
     def build_url(self, platform: str, query: Query, language: str, region: str) -> str:
-        base = self.CONFIGS[platform]["url"]
+        base = cast(str, self.CONFIGS[platform]["url"])
 
         if platform == "reddit":
             params = {
@@ -84,10 +83,8 @@ class SocialScraper(ParentScraper):
             return f"{base}{urllib.parse.urlencode(params)}"
 
         elif platform == "bluesky":
-            # Matching the format you confirmed works: q first, then limit
-            # Ensuring space is encoded as %20
             q_encoded = urllib.parse.quote(query.text)
-            params = {"limit": 50, "sort": "top"}
+            params = {"limit": "50", "sort": "top"}
             if language:
                 params["lang"] = language.split("-")[0]
 
@@ -113,7 +110,7 @@ class SocialScraper(ParentScraper):
 
         b_content = None
         if self.context:
-            # Set headers. If auth failed, we send a standard User-Agent only.
+            # Set headers. If auth failed, send a standard User-Agent only.
             headers = {
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -132,9 +129,7 @@ class SocialScraper(ParentScraper):
                 if response.ok:
                     b_content = await response.text()
                 else:
-                    print(
-                        f"[SocialScraper] Bluesky request failed: {response.status}"
-                    )
+                    print(f"[SocialScraper] Bluesky request failed: {response.status}")
                     # If 403 occurs even with Auth, log the body for debugging
                     if response.status == 403:
                         body = await response.text()
@@ -192,7 +187,12 @@ class SocialScraper(ParentScraper):
             root = ET.fromstring(content)
             for entry in root.findall("atom:entry", namespaces):
                 link_tag = entry.find("atom:link", namespaces=namespaces)
-                url = link_tag.get("href") if link_tag is not None else ""
+
+                url = ""
+                if link_tag is not None:
+                    raw_url = link_tag.get("href")
+                    url = raw_url if raw_url else ""
+
                 if "/comments/" not in url:
                     continue
 
