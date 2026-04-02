@@ -1,6 +1,5 @@
 import logging
 
-from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel, select
 
 from app.db.session import engine
@@ -94,7 +93,9 @@ def seed_proxies() -> None:
         return
 
     if not proxies_config:
-        logger.warning("No proxies found to seed. Check PROXIES_JSON environment variable.")
+        logger.warning(
+            "No proxies found to seed. Check PROXIES_JSON environment variable."
+        )
         return
 
     with Session(engine) as session:
