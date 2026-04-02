@@ -11,13 +11,12 @@ class Proxy(SQLModel, table=True):
     """Proxy server configuration for rotation and resilience."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    server: str = Field(unique=True, index=True)
+    server: str = Field(index=True)
     username: Optional[str] = None
     password: Optional[str] = None
     region: str
     language: str
     is_active: bool = Field(default=True)
-    success_rate: float = Field(default=1.0)
     last_used_at: Optional[datetime] = Field(default=None)
 
     # Relationships
