@@ -1,6 +1,5 @@
 import logging
 
-from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel, select
 
 from app.db.session import engine
