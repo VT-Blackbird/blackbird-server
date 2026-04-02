@@ -9,7 +9,10 @@ from googlenewsdecoder import gnewsdecoder
 from playwright.async_api import Browser, BrowserContext, Page
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from sqlmodel import Session, select
 
+from app.db.session import engine
+from app.models.source import Source
 from app.workers.core.browser_manager import BrowserManager
 from app.workers.core.proxy_manager import ProxyConfig, ProxyManager
 from app.workers.core.query import Query
@@ -117,6 +120,12 @@ class ParentScraper:
         except PlaywrightError as e:
             print(f"Playwright navigation error: {e}")
             return None
+
+    def get_source_config(self, name: str) -> Optional[Source]:
+        """Fetches source configuration from the database by name."""
+        with Session(engine) as session:
+            statement = select(Source).where(Source.name == name)
+            return session.exec(statement).first()
 
     ##Fetches RSS Info (with headers)
     async def fetch_rss(self, url: str) -> Optional[str]:
