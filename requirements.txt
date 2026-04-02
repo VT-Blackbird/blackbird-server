@@ -37,3 +37,7 @@ psycopg2-binary==2.9.11
 # ML
 # =========================
 langdetect==1.0.9
+torch==2.11.0
+nltk==3.9.4
+transformers==5.4.0
+safetensors==0.7.0
