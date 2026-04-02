@@ -7,80 +7,82 @@ from app.workers.core.utils import save_json
 
 
 class NewsScraper(ParentScraper):
-
-    BASE_URLS = [
-        "https://news.google.com/rss/search?"
-    ]
-
-
     async def scrape(self, query: Query, lan: str, region: str) -> List[Dict[str, Any]]:
 
         all_results: List[Dict[str, Any]] = []
 
-        for base in self.BASE_URLS:
+        # Fetch configuration from database
+        source_cfg = self.get_source_config("Google News")
 
-            url = self.build_url(base, query, lan, region)
-            print(f"[NewsScraper] Fetching RSS: {url}")
+        if not source_cfg:
+            print("[NewsScraper] Source 'Google News' not found in database.")
+            return []
 
-            # -----------------------------
-            # STAGE 1A – RSS
-            # -----------------------------
-            raw = await self.fetch_rss(url)
-            parsed: List[Dict[str, Any]] = []
+        if not source_cfg.is_enabled:
+            print("[NewsScraper] Google News source is currently disabled.")
+            return []
 
-            if raw:
-                parsed = self.parse_rss(raw)
+        # Using the base_url from the database record
+        base_url = source_cfg.base_url
+        url = self.build_url(base_url, query, lan, region)
 
-            # -----------------------------
-            # STAGE 1B – HTML fallback
-            # -----------------------------
-            if not parsed:
-                parsed = await self.html_fallback(query, lan, region)
+        print(f"[NewsScraper] Fetching RSS: {url}")
 
-            if not parsed:
-                print("[NewsScraper] No articles found")
-                continue
+        # -----------------------------
+        # STAGE 1A – RSS
+        # -----------------------------
+        raw = await self.fetch_rss(url)
+        parsed: List[Dict[str, Any]] = []
 
+        if raw:
+            parsed = self.parse_rss(raw, source_cfg.id)
 
-            # -----------------------------
-            # Resolve Google News URLs
-            # Basically Google News URL -> regular URL converter
-            # -----------------------------
-            resolved = await self.resolve_entries(parsed)
+        # -----------------------------
+        # STAGE 1B – HTML fallback
+        # -----------------------------
+        if not parsed:
+            parsed = await self.html_fallback(query, lan, region)
 
-            # -----------------------------
-            # STAGE 2 – Publisher scraping
-            # -----------------------------
-            enriched = await self.fetch_articles(resolved)
+        if not parsed:
+            print("[NewsScraper] No articles found")
+            return []
 
-            # Fix values in enriched first
-            start_index: int = len(all_results)
-            all_results.extend(enriched)
+        # -----------------------------
+        # Resolve Google News URLs
+        # Basically Google News URL -> regular URL converter
+        # -----------------------------
+        resolved = await self.resolve_entries(parsed)
 
-            for i, (p, e) in enumerate(zip(parsed, enriched)):
+        # -----------------------------
+        # STAGE 2 – Publisher scraping
+        # -----------------------------
+        enriched = await self.fetch_articles(resolved)
 
-                content_to_fill = p.get("content") or p.get("title")
-                if not e.get('content') and content_to_fill:
-                    idx:int = start_index + i
-                    all_results[idx]["content"] = content_to_fill
+        # Fix values in enriched first
+        start_index: int = len(all_results)
+        all_results.extend(enriched)
+
+        for i, (p, e) in enumerate(zip(parsed, enriched)):
+            content_to_fill = p.get("content") or p.get("title")
+            if not e.get("content") and content_to_fill:
+                idx: int = start_index + i
+                all_results[idx]["content"] = content_to_fill
 
         return all_results
 
-    #Builds google news RSS url
-    def build_url(self, base: str,
-                  query: Query,
-                  language: str,
-                  region: str, page: int = 0) -> str:
+    # Builds google news RSS url
+    def build_url(
+        self, base: str, query: Query, language: str, region: str, page: int = 0
+    ) -> str:
         params: Dict[str, Any] = {
             "q": query.text,
             "hl": language,
             "gl": region,
-            "ceid": f"{region}:{language.split('-')[0]}"
+            "ceid": f"{region}:{language.split('-')[0]}",
         }
         if page > 0:
             params["start"] = page * 10
         return f"{base}{urllib.parse.urlencode(params)}"
-
 
     @staticmethod
     async def save_results(query: Query, results: List[Any]) -> None:

@@ -95,7 +95,7 @@ class SocialScraper(ParentScraper):
             token = await self._login_bsky()
             url = self.build_url(bsky_cfg.base_url, "Bluesky", query, lan, region)
             print(f"[SocialScraper] Fetching bluesky: {url}")
-            
+
             headers = {
                 "User-Agent": self.user_agent or "Mozilla/5.0",
                 "Accept": "application/json",
@@ -130,15 +130,17 @@ class SocialScraper(ParentScraper):
                 rkey = uri.split("/")[-1] if "/" in uri else ""
                 post_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
 
-                articles.append({
-                    "source_id": source_id,
-                    "title": f"Post by @{handle}",
-                    "content": record.get("text", ""),
-                    "url": post_url,
-                    "published_at": record.get("createdAt"),
-                    "sentiment_label": None,
-                    "sentiment_score": None,
-                })
+                articles.append(
+                    {
+                        "source_id": source_id,
+                        "title": f"Post by @{handle}",
+                        "content": record.get("text", ""),
+                        "url": post_url,
+                        "published_at": record.get("createdAt"),
+                        "sentiment_label": None,
+                        "sentiment_score": None,
+                    }
+                )
         except Exception as e:
             print(f"[SocialScraper] Bluesky parsing error: {e}")
         return articles
@@ -154,23 +156,21 @@ class SocialScraper(ParentScraper):
                 if "/comments/" not in url:
                     continue
 
-                articles.append({
-                    "source_id": source_id,
-                    "title": entry.findtext(
-                        "atom:title", namespaces=namespaces
-                    ),
-                    "content": (
-                        entry.findtext(
-                            "atom:content", namespaces=namespaces
-                        ) or ""
-                    ),
-                    "url": url,
-                    "published_at": entry.findtext(
-                        "atom:updated", namespaces=namespaces
-                    ),
-                    "sentiment_label": None,
-                    "sentiment_score": None,
-                })
+                articles.append(
+                    {
+                        "source_id": source_id,
+                        "title": entry.findtext("atom:title", namespaces=namespaces),
+                        "content": (
+                            entry.findtext("atom:content", namespaces=namespaces) or ""
+                        ),
+                        "url": url,
+                        "published_at": entry.findtext(
+                            "atom:updated", namespaces=namespaces
+                        ),
+                        "sentiment_label": None,
+                        "sentiment_score": None,
+                    }
+                )
         except Exception as e:
             print(f"[SocialScraper] Reddit RSS error: {e}")
         return articles
