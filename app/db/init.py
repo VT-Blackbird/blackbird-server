@@ -1,5 +1,6 @@
 import logging
 
+from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel, select
 
 from app.db.session import engine
@@ -55,6 +56,14 @@ def seed_sources() -> None:
                 base_url="https://search.usa.gov/search?affiliate=aflink_all&query=",
                 is_enabled=True,
             ),
+            Source(
+                id=4,
+                name="Bluesky",
+                source_type=SourceType.SOCIAL,
+                extraction_method=ExtractionMethod.JSON_API,
+                base_url="https://api.bsky.app/xrpc/app.bsky.feed.searchPosts?",
+                is_enabled=True,
+            ),
         ]
 
         for source_data in initial_sources:
@@ -64,6 +73,11 @@ def seed_sources() -> None:
             if not existing:
                 logger.info(f"Seeding source: {source_data.name}")
                 session.add(source_data)
+            else:
+                # Update existing source in case extraction_method or base_url changed
+                existing.extraction_method = source_data.extraction_method
+                existing.base_url = source_data.base_url
+                session.add(existing)
 
         session.commit()
 

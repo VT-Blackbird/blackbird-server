@@ -33,7 +33,7 @@ class Search(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     query_text: str = Field(index=True)
-    request_limit: int = Field(default=20, ge=1, le=500)
+    request_limit: int = Field(default=100, ge=1, le=500)
     all_sources_requested: bool = Field(default=True)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
