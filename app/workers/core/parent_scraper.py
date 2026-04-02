@@ -25,10 +25,12 @@ from app.workers.core.utils import random_delay, save_json
 # and common scraping tasks.
 # =============================================
 class ParentScraper:
-
     # initializes parent scraper, optional proxies and user agent
-    def __init__(self, proxies: Optional[List[ProxyConfig]] = None,
-                 user_agent: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        proxies: Optional[List[ProxyConfig]] = None,
+        user_agent: Optional[str] = None,
+    ) -> None:
         self.browser_manager = BrowserManager()
         self.proxy_manager = ProxyManager(proxies)
 
@@ -40,7 +42,7 @@ class ParentScraper:
         self.user_agent: Optional[str] = user_agent
         self.MAX_CONCURRENT: int = 10  # max concurrent article fetches
         # max number of articles will try to scrape full article contents from
-        self.MAX_SECONDARY_SCRAPE:int =25
+        self.MAX_SECONDARY_SCRAPE: int = 25
 
     # Main method to run the scraper, handles setup,
     # scraping, saving results, and cleanup
@@ -65,6 +67,7 @@ class ParentScraper:
         finally:
             await self.close()
             return results
+
     # Setup browser with proxy and user agent
     async def setup(self) -> None:
         if self.page:
@@ -141,7 +144,7 @@ class ParentScraper:
                     "Referer": "https://news.google.com/",
                     "Cache-Control": "no-cache",
                     "Pragma": "no-cache",
-                }
+                },
             )
             if not resp or not resp.status_code:
                 return None
@@ -182,11 +185,11 @@ class ParentScraper:
     # Scrolls until number of elements matching selector stops increasing
     # random delay between scrolls
     async def scroll_until_stable(
-            self,
-            selector: str,
-            max_rounds: int = 10,
-            scroll_step: int = 3000,
-            delay_range: Tuple[float, float] = (1.5, 3.0),
+        self,
+        selector: str,
+        max_rounds: int = 10,
+        scroll_step: int = 3000,
+        delay_range: Tuple[float, float] = (1.5, 3.0),
     ) -> None:
         if not self.page:
             return
@@ -217,10 +220,9 @@ class ParentScraper:
 
     ### INSERTING METHODS MOVING OVER FROM SCRAPE NEWS
     ##Step 1B: HTML Fallback
-    async def html_fallback(self,
-                            query: Query,
-                            lan: str,
-                            region: str) -> List[Dict[str, Any]]:
+    async def html_fallback(
+        self, query: Query, lan: str, region: str
+    ) -> List[Dict[str, Any]]:
 
         print("RSS empty → falling back to HTML search")
 
@@ -233,7 +235,6 @@ class ParentScraper:
         html, ct = await self.load(html_url)
 
         if not html or ct != "html" or self.is_blocked(html):
-
             print("HTML blocked → trying Playwright")
 
             success = await self.goto(html_url)
@@ -248,33 +249,30 @@ class ParentScraper:
 
     # Converts Google News URL -> Regular URL
     async def resolve_entries(
-            self,
-            entries: List[Dict[str, Any]]
+        self, entries: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
 
-        return await asyncio.gather(*(
-            self._resolve_entry(e)
-            for e in entries[:self.MAX_SECONDARY_SCRAPE]
-        ))
+        return await asyncio.gather(
+            *(self._resolve_entry(e) for e in entries[: self.MAX_SECONDARY_SCRAPE])
+        )
 
     # Stage 2: Scrapes for article contents
     async def fetch_articles(
-            self,
-            entries: List[Dict[str, Any]]
+        self, entries: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
 
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT)
 
-        return await asyncio.gather(*(
-            self._fetch_entry(e, semaphore)
-            for e in entries[:self.MAX_SECONDARY_SCRAPE]
-        ))
+        return await asyncio.gather(
+            *(
+                self._fetch_entry(e, semaphore)
+                for e in entries[: self.MAX_SECONDARY_SCRAPE]
+            )
+        )
 
     # Helper for scraping actual article contents, can make priv
     async def _fetch_entry(
-            self,
-            entry: Dict[str, Any],
-            semaphore: asyncio.Semaphore
+        self, entry: Dict[str, Any], semaphore: asyncio.Semaphore
     ) -> Dict[str, Any]:
 
         url = entry.get("url")
@@ -284,7 +282,6 @@ class ParentScraper:
             return entry
 
         async with semaphore:
-
             # Step 1: HTTP
             html, ct = await self.load(url)
 
@@ -314,10 +311,7 @@ class ParentScraper:
 
         wrapper = entry["url"]
 
-        real_url = await asyncio.to_thread(
-            self.resolve_google_news_url,
-            wrapper
-        )
+        real_url = await asyncio.to_thread(self.resolve_google_news_url, wrapper)
 
         if real_url:
             entry["url"] = real_url
@@ -343,12 +337,12 @@ class ParentScraper:
             "Access to this page has been blocked",
             "Access to the page you are trying to view",
             "supports JavaScript and cookies",
-            "sending automated queries"
+            "sending automated queries",
         ]
         return any(b in html for b in blockers)
 
     ##Step 1A: Parse RSS
-    def parse_rss(self, content: str) -> List[Dict[str, Any]]:
+    def parse_rss(self, content: str, source_id: int) -> List[Dict[str, Any]]:
         articles: List[Dict[str, Any]] = []
         root = ET.fromstring(content)
         channel = root.find("channel")
@@ -361,25 +355,28 @@ class ParentScraper:
             pub_date = item.findtext("pubDate")
 
             # <-- keep the Google‑News wrapper URL
-            wrapper_url = item.findtext("link")  # e.g. https://news.google.com/rss/articles/CBMi…
-            articles.append({
-                "source_id": 2,
-                "title": title,
-                "content": caption if caption else title,
-                "url": wrapper_url,  # we will resolve it later
-                "published_at": pub_date,
-                "sentiment_label": None,
-                "sentiment_score": None,
-            })
+            wrapper_url = item.findtext(
+                "link"
+            )  # e.g. https://news.google.com/rss/articles/CBMi…
+            articles.append(
+                {
+                    "source_id": source_id,
+                    "title": title,
+                    "content": caption if caption else title,
+                    "url": wrapper_url,  # we will resolve it later
+                    "published_at": pub_date,
+                    "sentiment_label": None,
+                    "sentiment_score": None,
+                }
+            )
         return articles
 
     # Step 1B: HTML Fallback, Helper
-    def _parse_google_html(self, html: str) -> List[Dict[str, Any]]:
+    def _parse_google_html(self, html: str, source_id: int) -> List[Dict[str, Any]]:
         soup = BeautifulSoup(html, "lxml")
         articles: List[Dict[str, Any]] = []
 
         for link_tag in soup.select('a[href^="./articles"]'):
-
             if not link_tag:
                 continue
             href_raw = link_tag.get("href")
@@ -397,15 +394,17 @@ class ParentScraper:
             else:
                 url = href
             assert url is not None
-            articles.append({
-                "source_id": 2,
-                "title": title,
-                "url": url,
-                "content": title,
-                "published_at": None,
-                "sentiment_label": None,
-                "sentiment_score": None
-            })
+            articles.append(
+                {
+                    "source_id": source_id,
+                    "title": title,
+                    "url": url,
+                    "content": title,
+                    "published_at": None,
+                    "sentiment_label": None,
+                    "sentiment_score": None,
+                }
+            )
 
         print(f"\t\t Parsed {len(articles)} articles from HTML")
 
@@ -424,9 +423,9 @@ class ParentScraper:
 
     def resolve_google_news_url(self, wrapper_url: str) -> Optional[str]:
         """Resolve a Google News wrapper URL to the final article URL.
-            The function attempts to rotate through the configured proxy (if any)
-            and uses ``gnewsdecoder`` to decode the wrapper.  Any exception is
-            caught and logged, returning ``None`` on failure.
+        The function attempts to rotate through the configured proxy (if any)
+        and uses ``gnewsdecoder`` to decode the wrapper.  Any exception is
+        caught and logged, returning ``None`` on failure.
         """
         try:
             proxy_str: Optional[str] = self.proxy_manager.get_rotating_proxy_url()
@@ -452,5 +451,3 @@ class ParentScraper:
         except Exception as e:
             print(f"\t\t GNewsDecoder Error: {e}")
             return None
-
-

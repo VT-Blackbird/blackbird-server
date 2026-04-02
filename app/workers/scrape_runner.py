@@ -18,8 +18,8 @@ QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
     # Query(text="AFA"),
     # Query(text="DOW AI"),
-    Query(text="Drone CCA")
-    # Query(text="Artificial Intelligence")
+    # Query(text="Drone CCA")
+    Query(text="Artificial Intelligence")
 ]
 
 PROXIES: List[ProxyConfig] = load_proxies()
