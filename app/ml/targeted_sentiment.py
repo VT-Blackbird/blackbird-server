@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import nltk
 
@@ -20,7 +20,7 @@ from app.ml.utils import (
 # nltk.download('punkt_tab')
 
 #load model
-def load_model():
+def load_model()->Tuple[SpanTSA, RobertaTokenizer]:
     model:SpanTSA = SpanTSA("roberta-base", num_labels=5)
     # Load state_dict using safetensors.torch.load_file for .safetensors format
 
@@ -32,10 +32,16 @@ def load_model():
 
 def load_data(path:str)->List[Dict[str, Any]] :
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data:List[Dict[str, Any]]= json.load(f)
+        return data
 
 #Uses model to make inference on sentiment for a single article
-def make_inference(model, tokenizer, text, threshold=0.5)->Dict[str, Any]:
+def make_inference(
+        model:SpanTSA,
+        tokenizer:RobertaTokenizer,
+        text:str,
+        threshold: float=0.5
+    )->Dict[str, Any]:
     sentences = nltk.sent_tokenize(text)
 
     all_targets = []
@@ -86,6 +92,7 @@ def run_model(path:str)->List[Dict[str, Any]]:
     #temp save all output data from model, testing purposes
     output_path = f"output_{path}"
     save_json(output, output_path)
+    return data
 
 if __name__ == "__main__":
     run_model("test_sentiment.json")
