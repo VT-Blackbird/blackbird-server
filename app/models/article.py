@@ -27,6 +27,7 @@ class Article(SQLModel, table=True):
     # Analytics
     sentiment_label: Optional[str] = Field(default=None)
     sentiment_score: Optional[float] = Field(default=None)
+    relevance_score: Optional[float] = Field(default=None)
 
     # Foreign Keys
     search_id: uuid.UUID = Field(foreign_key="search.id", ondelete="CASCADE")

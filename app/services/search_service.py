@@ -3,7 +3,7 @@ import random
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List
-
+from sentence_transformers import SentenceTransformer, util
 from dateutil import parser
 from sqlmodel import Session
 
@@ -20,7 +20,6 @@ from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
 from app.workers.scrapers.social_scraper import SocialScraper
 
-
 class SearchService:
     def __init__(self) -> None:
         # Initialize scrapers once or per request?
@@ -31,6 +30,7 @@ class SearchService:
             "Gov": GovScraper
         }
         self.cleaner = DataCleaner()
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
@@ -140,12 +140,27 @@ class SearchService:
         # This prevents the list from being dominated by a single scraper's results
         random.shuffle(unique_results)
 
+        if unique_results:
+            # 1. Create embeddings for the query and all results
+            query_embedding = self.model.encode(request.query, convert_to_tensor=True)
+
+            # Use title + a snippet of content for the comparison
+            corpus_texts = [f"{res.title} {res.content[:200]}" for res in unique_results]
+            corpus_embeddings = self.model.encode(corpus_texts, convert_to_tensor=True)
+
+            # 2. Calculate Cosine Similarity
+            cosine_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
+
+            # 3. Assign scores to your result objects
+            for i, res in enumerate(unique_results):
+                res.relevance_score = float(cosine_scores[i])
+
+            # 4. Sort by score instead of random shuffle
+            unique_results.sort(key=lambda x: x.relevance_score, reverse=True)
+
         #Apply the limit from the frontend request
         limit = request.limit if request.limit > 0 else 10
         limited_results = unique_results[:limit]
-
-        #Sort the final limited subset by date
-        limited_results.sort(key=lambda x: x.published_at, reverse=True)
 
         execution_time = (time.time() - start_time) * 1000
         print(limited_results)
@@ -154,8 +169,6 @@ class SearchService:
             execution_time_ms=round(execution_time, 2),
             results=limited_results,
         )
-
-
 
     @staticmethod
     def _map_to_schema(raw_item: Dict[str, Any]) -> SearchResultItem:
@@ -206,7 +219,8 @@ class SearchService:
             content=content,
             url=raw_item.get("url", ""),
             published_at=parsed_date,
-            sentiment=None
+            sentiment=None,
+            relevance_score=None,
         )
 
 # Create a singleton instance to be used by the routes
