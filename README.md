@@ -22,7 +22,9 @@ Before running the backend, ensure you have the following installed:
 
 - **Docker Engine** (Linux) or **Docker Desktop** (Windows / Mac)
   - [Install Docker](https://docs.docker.com/get-docker/)
-
+- **Git Large File Storage**
+  - Linux Command: sudo apt-get install git-lfs
+  - Windows: winget install GitHub.GitLFS
 ---
 
 ## Project Structure
@@ -107,6 +109,19 @@ The database uses a Docker volume named `postgres_data` to ensure searches and a
 | `docker compose down -v` | **WIPED**: Deletes the volume and all stored data. |
 
 ---
+## Git Large File Storage Commands
+More information on git-lfs commands can be found in the tutorial [here](https://medium.com/@pablojusue/git-lfs-and-dvc-the-ultimate-guide-to-managing-large-artifacts-in-mlops-c1c926e6c5f4 
+). Git-lfs stores large files as pointers. Once a file is tracked, make sure to add .gitattributes to the commit then you can use git as normal. 
+
+|Action |Command| Notes|
+|-------|--------|------|
+|Add a file to git-lfs | `git lfs track <file-path>` |
+| Add gitattributes to git| `git add .gitattributes`| must commit where tracking info is from 
+|View all files recognized as "tracked"| `git lfs ls-files`|
+|View all patterns you are tracking|`git lfs track`|
+
+
+---
 
 ## Quality Standards
 
@@ -133,17 +148,17 @@ The database uses a Docker volume named `postgres_data` to ensure searches and a
 
 ### Docker Command Reference
 
-| Action | Command | Notes |
-| :--- | :--- | :--- |
-| Build backend image | `sudo docker compose build backend` | Creates or updates the image using the Dockerfile and requirements |
+| Action | Command | Notes                                                                 |
+| :--- | :--- |:----------------------------------------------------------------------|
+| Build backend image | `sudo docker compose build backend` | Creates or updates the image using the Dockerfile and requirements    |
 | Start stack (detached) | `sudo docker compose up -d` | Runs full stack in background; creates containers if they don’t exist |
-| Stop services | `sudo docker compose stop` | Stops containers without deleting them |
-| Restart backend | `sudo docker compose restart backend` | Restarts container using existing image |
-| Stop and remove | `sudo docker compose down` | Cleans up containers, networks, and default volumes |
+| Stop services | `sudo docker compose stop` | Stops containers without deleting them                                |
+| Restart backend | `sudo docker compose restart backend` | Restarts container using existing image                               |
+| Stop and remove | `sudo docker compose down` | Cleans up containers, networks, and default volumes                   |
 | Rebuild and recreate | `sudo docker compose up -d --build` | Ensures container runs the latest image after code/dependency changes |
-| Run tests | `sudo docker compose run --rm backend pytest` | Temporary container; removed after running |
-| Run specific test | `sudo docker compose run --rm backend pytest tests/test_specific.py` | Useful for targeted testing |
-| Access container shell | `sudo docker compose exec backend /bin/bash` | Open interactive shell in a running container |
-| View DB logs | `sudo docker compose logs -f db` | Useful for monitoring database initialization or connection issues |
-| View running containers | `sudo docker ps` | Shows active containers |
-| Access Postgres CLI | `sudo docker compose exec db psql -U postgres -d blackbird` | Directly query the database from the terminal |
+| Run tests | `sudo docker compose run --rm backend pytest` | Temporary container; removed after running                            |
+| Run specific test | `sudo docker compose run --rm backend pytest tests/test_specific.py` | Useful for targeted testing                                           |
+| Access container shell | `sudo docker compose exec backend /bin/bash` | Open interactive shell in a running container                         |
+| View DB logs | `sudo docker compose logs -f db` | Useful for monitoring database initialization or connection issues    |
+| View running containers | `sudo docker ps` | Shows active containers                                               |
+| Access Postgres CLI | `sudo docker compose exec db psql -U postgres -d blackbird` | Directly query the database from the terminal                         |

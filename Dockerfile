@@ -15,7 +15,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-RUN playwright install --with-deps
+
+#install dependency for ML model
+RUN playwright install --with-deps && \
+    python -m nltk.downloader punkt
 # 5. Copy the rest of the application
 COPY . .
 

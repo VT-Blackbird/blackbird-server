@@ -2,8 +2,6 @@ import json
 from typing import Any, Dict, List, Tuple
 
 import nltk
-
-# from safetensors.torch import safetensors
 import safetensors
 import torch
 from transformers import RobertaTokenizer
@@ -17,17 +15,17 @@ from app.ml.utils import (
     update_document,
 )
 
-# nltk.download('punkt_tab')
+nltk.download('punkt_tab')
 
 #load model
 def load_model()->Tuple[SpanTSA, RobertaTokenizer]:
     model:SpanTSA = SpanTSA("roberta-base", num_labels=5)
     # Load state_dict using safetensors.torch.load_file for .safetensors format
 
-    model.load_state_dict(safetensors.torch.load_file("./tsa_model_parameters/model.safetensors"))
+    model.load_state_dict(safetensors.torch.load_file("app/ml/tsa_model_parameters/model.safetensors"))
     model.eval()
 
-    tokenizer = RobertaTokenizer.from_pretrained("./tsa_model_parameters")
+    tokenizer = RobertaTokenizer.from_pretrained("app/ml/tsa_model_parameters")
     return model, tokenizer
 
 def load_data(path:str)->List[Dict[str, Any]] :
@@ -88,11 +86,11 @@ def run_model(path:str)->List[Dict[str, Any]]:
         output.append(predicted)
     # update original dataset
     data = update_document(output, data, num_classes=5)
-    save_json(data, f"updated_dataset{path}")
+    save_json(data, "app/ml/updated_dataset_test_sentiment.json")
     #temp save all output data from model, testing purposes
-    output_path = f"output_{path}"
+    output_path = "app/ml/output_test_sentiment.json"
     save_json(output, output_path)
     return data
 
 if __name__ == "__main__":
-    run_model("test_sentiment.json")
+    run_model("app/ml/test_sentiment.json")

@@ -85,7 +85,7 @@ def update_document(
             assert -1 <= sentiment <= 1, "Sentiment should be between -1 and 1"
 
         if sentiment is None:
-            y["sentiment_label"] = "NA"
+            y["sentiment_label"] = None
         elif num_classes == 3:
             if sentiment < -0.33:
                 y["sentiment_label"] = "NEGATIVE"
