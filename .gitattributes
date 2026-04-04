@@ -1,2 +1,3 @@
-app/ml/tsa_model_parameters/model.safetensors filter=lfs diff=lfs merge=lfs -text*.sh text eol=lf
+app/ml/tsa_model_parameters/model.safetensors filter=lfs diff=lfs merge=lfs -text
+scripts/check.sh text eol=lf
 *.safetensors filter=lfs diff=lfs merge=lfs -text
