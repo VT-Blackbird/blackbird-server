@@ -43,3 +43,4 @@ nltk==3.9.4
 transformers==5.4.0
 safetensors==0.7.0
 sentence-transformers==3.0.1
+torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu
