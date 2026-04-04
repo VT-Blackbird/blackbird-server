@@ -18,6 +18,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 #install dependency for ML model
 RUN playwright install --with-deps
+
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
 # 5. Copy the rest of the application
 COPY . .
 
