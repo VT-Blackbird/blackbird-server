@@ -25,6 +25,7 @@ Before running the backend, ensure you have the following installed:
 - **Git Large File Storage**
   - Linux Command: sudo apt-get install git-lfs
   - Windows: winget install GitHub.GitLFS
+    - If using wsl, must also install git-lfs within linux shell
 ---
 
 ## Project Structure
