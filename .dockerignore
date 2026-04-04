@@ -5,3 +5,24 @@ __pycache__
 .env
 venv
 node_modules
+# Local Database & SQLite files (These can be massive)
+*.sqlite3
+*.db
+*.db-journal
+
+# Playwright Browser Binaries
+# (If these exist in your root, they are ~2GB of dead weight)
+pw-browsers/
+.cache/ms-playwright/
+
+# Python Caches & IDE metadata
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.idea/
+.vscode/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/

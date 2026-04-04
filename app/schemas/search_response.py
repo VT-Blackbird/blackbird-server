@@ -24,6 +24,7 @@ class SearchResultItem(BaseModel):
     url: str
     published_at: datetime
     sentiment: Optional[SentimentScores] = None
+    relevance_score: float | None = None
 
 
 class SearchResponse(BaseModel):

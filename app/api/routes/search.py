@@ -6,7 +6,6 @@ from app.services.search_service import search_service  # Import the service
 
 router = APIRouter()
 
-
 @router.post("/", response_model=SearchResponse)
 async def perform_search(request: SearchRequest)-> SearchResponse:
     # If request is invalid, FastAPI returns 422 before even getting here.
