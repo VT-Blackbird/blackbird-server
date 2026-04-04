@@ -1,10 +1,10 @@
 import asyncio
-import random
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from dateutil import parser
+from sentence_transformers import SentenceTransformer, util
 from sqlmodel import Session
 
 from app.db.session import engine
@@ -31,104 +31,106 @@ class SearchService:
             "Gov": GovScraper
         }
         self.cleaner = DataCleaner()
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
         source_id_map = {"Reddit": 1, "News": 2, "Gov": 3}
 
-        #Used to see if all sources are requested
+        # 1. Determine search scope
         all_available = set(self.platforms_map.keys())
         requested = set(request.platforms)
         is_full_search = all_available.issubset(requested)
 
-        #Open a database session
-        with Session(engine) as session:
-            #Create and save search record
-            db_search = Search(query_text=request.query,
-                               request_limit = request.limit,
-                               all_sources_requested = is_full_search
-                               )
-
+        # 2. Initialize Search Record
+        with (Session(engine) as session):
+            db_search = Search(
+                query_text=request.query,
+                request_limit=request.limit,
+                all_sources_requested=is_full_search
+            )
             session.add(db_search)
-            session.flush()
-            #Link the source to the SearchSource bridge table
+            session.flush()  # Get the db_search.id
 
             if not is_full_search:
                 for platform in request.platforms:
                     source_id = source_id_map.get(platform)
                     if source_id:
-                        bridge = SearchSource(search_id=db_search.id,
-                                              source_id=source_id)
-                        session.add(bridge)
+                        session.add(SearchSource(search_id=db_search.id,
+                                                 source_id=source_id))
 
-            # Ensure we use the new Dataclass structure correctly
+            # 3. Execute Scrapers concurrently
             worker_query = ScraperQuery(text=request.query)
-
             tasks = []
             for platform in request.platforms:
                 scraper_class = self.platforms_map.get(platform)
-                if not scraper_class:
-                    continue
-
-                ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                      " (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-                if platform == "Reddit":
-                    ua = "linux:blackbird-backend:v1.0.0 (by /u/vtblackbird)"
-
-                # The new ParentScraper __init__ takes (proxies, user_agent)
-                scraper_inst = scraper_class(proxies=[], user_agent=ua)
-
-                # The new .run() orchestrates everything (setup -> scrape -> close)
-                tasks.append(scraper_inst.run(worker_query, "en-US", "US"))
+                if scraper_class:
+                    ua = ("linux:blackbird-backend:v1.0.0 (by"
+                          " /u/vtblackbird)") if platform == "Reddit" else \
+                        ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                         " (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+                    scraper_inst = scraper_class(proxies=[], user_agent=ua)
+                    tasks.append(scraper_inst.run(worker_query, "en-US", "US"))
 
             scraper_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            final_results: List[SearchResultItem] = []
-
+            # 4. Filter, Clean, and Collect Raw Items
+            temp_items = []
             for platform_name, platform_output in zip(request.platforms,
                                                       scraper_results):
-                if isinstance(platform_output, Exception):
-                    print(f"Error in {platform_name}: {platform_output}")
+                if isinstance(platform_output, (BaseException, Exception)
+                              ) or platform_output is None:
                     continue
 
-                # CRITICAL: New scrapers might return None if they fail internally
-                if platform_output is None:
-                    print(f"Platform {platform_name} returned no data.")
-                    continue
 
-                if isinstance(platform_output, list):
-                    for item in platform_output:
-                        # Defensive check: skip empty/malformed dicts
-                        if not item or not isinstance(item, dict):
-                            continue
+                for item in platform_output:
+                    if not item or not isinstance(item, dict):
+                        continue
 
-                        # --- NEW CLEANING & FILTERING LOGIC ---
-                        raw_text = item.get("content", "") or item.get("title", "")
+                    # Language Filter & Cleaning
+                    raw_text = item.get("content", "") or item.get("title", "")
+                    if not self.cleaner.is_english(raw_text):
+                        continue
 
-                        # 1. Check Language (Filter out non-english languages)
-                        if not self.cleaner.is_english(raw_text):
-                            continue  # Skip non-English articles
+                    item["content"] = self.cleaner.clean(raw_text)
+                    item["source_id"] = source_id_map.get(platform_name, 0)
+                    temp_items.append(item)
 
-                        # Clean the full content (Removes URLs, HTML, fix whitespace)
-                        # Done before schema mapping
-                        item["content"] = self.cleaner.clean(raw_text)
-                        #Create the article db object after it is cleaned
-                        db_article = Article(
-                            title=item["title"],
-                            content=item["content"],  # This is the FULL cleaned text
-                            url=item["url"],
-                            published_at=item.get("published_at"),
-                            search_id=db_search.id,
-                            source_id=source_id_map.get(platform_name, 0)
-                        )
-                        session.add(db_article)
-                        final_results.append(self._map_to_schema(item))
-            session.commit()
+            final_results: List[SearchResultItem] = []
 
+            # 5. ML Scoring & Database Persistence
+            if temp_items:
+                # Calculate embeddings for the batch
+                query_emb = self.model.encode(request.query, convert_to_tensor=True)
+                corpus_texts = [(f"{i['title']} "
+                                 f"{i['content'][:200]}") for i in temp_items]
+                corpus_embs = self.model.encode(corpus_texts, convert_to_tensor=True)
+                cosine_scores = util.cos_sim(query_emb, corpus_embs)[0]
 
+                for idx, item in enumerate(temp_items):
+                    score = float(cosine_scores[idx])
 
-        # --- LIMITING & SORTING LOGIC ---
-        # Simple deduplication by URL
+                    # Update raw item so the mapper picks it up
+                    item["relevance_score"] = score
+
+                    # Create DB Model with the score
+                    db_article = Article(
+                        title=item["title"],
+                        content=item["content"],
+                        url=item["url"],
+                        published_at=item.get("published_at"),
+                        search_id=db_search.id,
+                        source_id=item["source_id"],
+                        relevance_score=score
+                    )
+                    session.add(db_article)
+
+                    # Map to Response Schema
+                    final_results.append(self._map_to_schema(item))
+
+                session.commit()
+
+        # 6. Deduplicate, Sort by Relevance, and Limit
         seen_urls = set()
         unique_results = []
         for res in final_results:
@@ -136,26 +138,19 @@ class SearchService:
                 unique_results.append(res)
                 seen_urls.add(res.url)
 
-        #Shuffle for variety
-        # This prevents the list from being dominated by a single scraper's results
-        random.shuffle(unique_results)
+        # High score at the top
+        unique_results.sort(key=lambda x: (x.relevance_score or 0), reverse=True)
 
-        #Apply the limit from the frontend request
         limit = request.limit if request.limit > 0 else 10
         limited_results = unique_results[:limit]
 
-        #Sort the final limited subset by date
-        limited_results.sort(key=lambda x: x.published_at, reverse=True)
-
         execution_time = (time.time() - start_time) * 1000
-        print(limited_results)
+
         return SearchResponse(
             total_count=len(limited_results),
             execution_time_ms=round(execution_time, 2),
             results=limited_results,
         )
-
-
 
     @staticmethod
     def _map_to_schema(raw_item: Dict[str, Any]) -> SearchResultItem:
@@ -206,7 +201,8 @@ class SearchService:
             content=content,
             url=raw_item.get("url", ""),
             published_at=parsed_date,
-            sentiment=None
+            sentiment=None,
+            relevance_score=raw_item.get("relevance_score"),
         )
 
 # Create a singleton instance to be used by the routes
