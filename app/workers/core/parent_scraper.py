@@ -46,12 +46,6 @@ class ParentScraper:
 
     # Main method to run the scraper, handles setup,
     # scraping, saving results, and cleanup
-    # Orchestrates scraping workflow:
-    # 1. Sets up browser and proxy
-    # 2. Executes scraping logic defined in subclass
-    # 3. Saves results using subclass implementation
-    # lan  - language of proxy
-    # region - region proxy is based
     async def run(self, query: Any, lan: str, region: str) -> Optional[List[Any]]:
         await self.setup()
         results: Optional[List[Any]] = None
@@ -91,20 +85,14 @@ class ParentScraper:
         if self.browser:
             await self.browser.close()
         if self.browser_manager:
-            # closing might invalidate future launches if shared obj across scrpers
             await self.browser_manager.close()
 
         # reset references
         self.page = None
         self.context = None
         self.browser = None
-        # self.browser_manager = None
         self.curr_proxy = None
 
-    # Navigates to a URL and waits for the DOM to load,
-    # with random delay to mimic human behavior
-
-    # ret boolean if successful or not
     async def goto(self, url: str) -> Optional[str]:
         if not self.page or not self.context:
             return None
@@ -130,7 +118,6 @@ class ParentScraper:
             statement = select(Source).where(Source.name == name)
             return session.exec(statement).first()
 
-    ##Fetches RSS Info (with headers)
     async def fetch_rss(self, url: str) -> Optional[str]:
         if self.user_agent is None:
             raise RuntimeError("User-Agent not initialized")
@@ -159,12 +146,10 @@ class ParentScraper:
                 content_type = response.headers.get("content-type", "")
                 if "xml" in content_type:
                     return await response.text(), "xml"
-
-                # If it's HTML but static, return directly
                 if "text/html" in content_type:
                     return await response.text(), "html"
             except Exception:
-                pass  # fallback to browser
+                pass
 
         success: Optional[str] = await self.goto(url)
         if not success or not self.page:
@@ -172,18 +157,13 @@ class ParentScraper:
 
         return await self.page.content(), "html"
 
-    # Placeholder for actual scraping, to be implemented by subclasses
     async def scrape(self, query: Any, lan: str, region: str) -> List[Any]:
         raise NotImplementedError
 
-    # # Placeholder for saving results, to be implemented by subclasses
     @staticmethod
     async def save_results(query: Any, results: List[Any]) -> None:
         save_json(results, f"./Query_{query.id}_results.json")
 
-    # usage: for infinite scrolling pages
-    # Scrolls until number of elements matching selector stops increasing
-    # random delay between scrolls
     async def scroll_until_stable(
         self,
         selector: str,
@@ -197,33 +177,17 @@ class ParentScraper:
         last_count = 0
 
         for round_num in range(max_rounds):
-            print(f"[scroll] round={round_num} of {max_rounds}")
             elements = await self.page.query_selector_all(selector)
             current_count = len(elements)
-
-            print(f"items={current_count}")
-
-            # stop condition
             if current_count == last_count:
-                print("[scroll] content stabilized")
                 break
-
             last_count = current_count
-
-            # human(ish) scrolling
             await self.page.mouse.wheel(0, scroll_step)
-
             await random_delay(*delay_range)
 
-    def get_curr_proxy(self) -> Optional[ProxyConfig]:
-        return self.curr_proxy
-
-    ### INSERTING METHODS MOVING OVER FROM SCRAPE NEWS
-    ##Step 1B: HTML Fallback
     async def html_fallback(
-        self, query: Query, lan: str, region: str
+        self, query: Query, lan: str, region: str, source_id: int
     ) -> List[Dict[str, Any]]:
-
         print("RSS empty → falling back to HTML search")
 
         html_url = (
@@ -236,33 +200,26 @@ class ParentScraper:
 
         if not html or ct != "html" or self.is_blocked(html):
             print("HTML blocked → trying Playwright")
-
             success = await self.goto(html_url)
-
             if success and self.page:
                 html = await self.page.content()
 
         if html and not self.is_blocked(html):
-            return self._parse_google_html(html)
+            return self._parse_google_html(html, source_id)
 
         return []
 
-    # Converts Google News URL -> Regular URL
     async def resolve_entries(
         self, entries: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-
         return await asyncio.gather(
             *(self._resolve_entry(e) for e in entries[: self.MAX_SECONDARY_SCRAPE])
         )
 
-    # Stage 2: Scrapes for article contents
     async def fetch_articles(
         self, entries: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT)
-
         return await asyncio.gather(
             *(
                 self._fetch_entry(e, semaphore)
@@ -270,62 +227,40 @@ class ParentScraper:
             )
         )
 
-    # Helper for scraping actual article contents, can make priv
     async def _fetch_entry(
         self, entry: Dict[str, Any], semaphore: asyncio.Semaphore
     ) -> Dict[str, Any]:
-
         url = entry.get("url")
-
         if not url:
             entry["content"] = None
             return entry
 
         async with semaphore:
-            # Step 1: HTTP
             html, ct = await self.load(url)
-
             if html and ct == "html" and not self.is_blocked(html):
                 entry["content"] = self._extract_article_text(html)
                 return entry
 
-            # Step 2: Playwright fallback
-            print("HTTP blocked → Playwright:", url)
-
             success = await self.goto(url)
-
             if success and self.page:
                 html = await self.page.content()
-
                 if html and not self.is_blocked(html):
                     entry["content"] = self._extract_article_text(html)
                     return entry
 
-            # Step 3: Skip
             entry["content"] = None
             return entry
 
-    # Helper to convert google news URLs to real URLs, can make private
-
     async def _resolve_entry(self, entry: Dict[str, Any]) -> Dict[str, Any]:
-
         wrapper = entry["url"]
-
         real_url = await asyncio.to_thread(self.resolve_google_news_url, wrapper)
-
         if real_url:
             entry["url"] = real_url
         else:
             entry["content"] = None
-
         return entry
 
     def is_blocked(self, html: str) -> bool:
-        """Detect common access‑denied or Cloudflare challenge pages.
-
-        The function normalises the HTML to lower‑case and checks for a set of
-        known blocker phrases.  Returns ``True`` if any blocker is found.
-        """
         html = html.lower()
         blockers = [
             "just a moment",
@@ -341,7 +276,6 @@ class ParentScraper:
         ]
         return any(b in html for b in blockers)
 
-    ##Step 1A: Parse RSS
     def parse_rss(self, content: str, source_id: int) -> List[Dict[str, Any]]:
         articles: List[Dict[str, Any]] = []
         root = ET.fromstring(content)
@@ -353,17 +287,13 @@ class ParentScraper:
             title = item.findtext("title")
             caption = item.findtext("description")
             pub_date = item.findtext("pubDate")
-
-            # <-- keep the Google‑News wrapper URL
-            wrapper_url = item.findtext(
-                "link"
-            )  # e.g. https://news.google.com/rss/articles/CBMi…
+            wrapper_url = item.findtext("link")
             articles.append(
                 {
                     "source_id": source_id,
                     "title": title,
                     "content": caption if caption else title,
-                    "url": wrapper_url,  # we will resolve it later
+                    "url": wrapper_url,
                     "published_at": pub_date,
                     "sentiment_label": None,
                     "sentiment_score": None,
@@ -371,7 +301,6 @@ class ParentScraper:
             )
         return articles
 
-    # Step 1B: HTML Fallback, Helper
     def _parse_google_html(self, html: str, source_id: int) -> List[Dict[str, Any]]:
         soup = BeautifulSoup(html, "lxml")
         articles: List[Dict[str, Any]] = []
@@ -383,17 +312,14 @@ class ParentScraper:
             title_raw = link_tag.get("title")
 
             if not isinstance(href_raw, str) or not isinstance(title_raw, str):
-                continue  # if inside loop
+                continue
 
             href = href_raw
             title = title_raw
-            # Google News links are relative
-            url: str
             if href.startswith("./"):
                 url = urllib.parse.urljoin("https://news.google.com/", href)
             else:
                 url = href
-            assert url is not None
             articles.append(
                 {
                     "source_id": source_id,
@@ -405,12 +331,8 @@ class ParentScraper:
                     "sentiment_score": None,
                 }
             )
-
-        print(f"\t\t Parsed {len(articles)} articles from HTML")
-
         return articles
 
-    # Helper for Step 2; can make priv
     def _extract_article_text(self, html: str) -> Optional[str]:
         soup = BeautifulSoup(html, "lxml")
         paragraphs = soup.select("article p")
@@ -418,26 +340,16 @@ class ParentScraper:
             paragraphs = soup.select("p")
 
         text = " ".join(p.get_text(strip=True) for p in paragraphs)
-
         return text if len(text) > 50 else None
 
     def resolve_google_news_url(self, wrapper_url: str) -> Optional[str]:
-        """Resolve a Google News wrapper URL to the final article URL.
-        The function attempts to rotate through the configured proxy (if any)
-        and uses ``gnewsdecoder`` to decode the wrapper.  Any exception is
-        caught and logged, returning ``None`` on failure.
-        """
         try:
             proxy_str: Optional[str] = self.proxy_manager.get_rotating_proxy_url()
             decoded: Any
             if not proxy_str:
-                print("No proxy configured for decoder")
                 decoded = gnewsdecoder(wrapper_url)
             else:
-                decoded = gnewsdecoder(
-                    wrapper_url,
-                    proxy=proxy_str,
-                )
+                decoded = gnewsdecoder(wrapper_url, proxy=proxy_str)
 
             if not isinstance(decoded, dict):
                 return None
