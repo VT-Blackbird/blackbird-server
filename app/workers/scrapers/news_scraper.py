@@ -8,14 +8,15 @@ from app.workers.core.utils import save_json
 
 class NewsScraper(ParentScraper):
     async def scrape(self, query: Query, lan: str, region: str) -> List[Dict[str, Any]]:
-
         all_results: List[Dict[str, Any]] = []
 
         # Fetch configuration from database
         source_cfg = self.get_source_config("Google News")
 
-        if not source_cfg:
-            print("[NewsScraper] Source 'Google News' not found in database.")
+        if not source_cfg or source_cfg.id is None:
+            print(
+                "[NewsScraper] Source 'Google News' not found or has no ID in database."
+            )
             return []
 
         if not source_cfg.is_enabled:
@@ -41,7 +42,7 @@ class NewsScraper(ParentScraper):
         # STAGE 1B – HTML fallback
         # -----------------------------
         if not parsed:
-            parsed = await self.html_fallback(query, lan, region)
+            parsed = await self.html_fallback(query, lan, region, source_cfg.id)
 
         if not parsed:
             print("[NewsScraper] No articles found")
@@ -49,7 +50,6 @@ class NewsScraper(ParentScraper):
 
         # -----------------------------
         # Resolve Google News URLs
-        # Basically Google News URL -> regular URL converter
         # -----------------------------
         resolved = await self.resolve_entries(parsed)
 
@@ -58,7 +58,6 @@ class NewsScraper(ParentScraper):
         # -----------------------------
         enriched = await self.fetch_articles(resolved)
 
-        # Fix values in enriched first
         start_index: int = len(all_results)
         all_results.extend(enriched)
 
@@ -70,7 +69,6 @@ class NewsScraper(ParentScraper):
 
         return all_results
 
-    # Builds google news RSS url
     def build_url(
         self, base: str, query: Query, language: str, region: str, page: int = 0
     ) -> str:

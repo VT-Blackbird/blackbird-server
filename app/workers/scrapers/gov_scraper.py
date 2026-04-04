@@ -26,13 +26,13 @@ class GovScraper(ParentScraper):
         return f"{base}{query_string}"
 
     async def scrape(self, query: Query, lan: str, region: str) -> List[Dict[str, Any]]:
-        all_results = []
+        all_results: List[Dict[str, Any]] = []
 
         # Fetch configuration from database
         source_cfg = self.get_source_config("USA.gov")
 
-        if not source_cfg:
-            print("[GovScraper] Source 'USA.gov' not found in database.")
+        if not source_cfg or source_cfg.id is None:
+            print("[GovScraper] Source 'USA.gov' not found or has no ID in database.")
             return []
 
         if not source_cfg.is_enabled:
@@ -46,15 +46,18 @@ class GovScraper(ParentScraper):
 
         print(f"[GovScraper] Fetching: {url_}")
         result: Tuple[Optional[str], Optional[str]] = await self.load(url_)
-        content, content_type = result  # get to the page
-        parsed = None
-        if not content:  # if no page, abort + move onto the next
+        content, content_type = result
+        
+        if not content:
             print("abort scrape")
             return []
-        elif content_type == "html":
+            
+        parsed: Optional[List[Dict[str, Any]]] = None
+        if content_type == "html":
             parsed = self.parse_html(content, source_cfg.id)
         elif content_type == "rss":
             parsed = self.parse_rss(content, source_cfg.id)
+            
         if parsed:
             all_results.extend(parsed)
         elif parsed == []:
@@ -79,17 +82,15 @@ class GovScraper(ParentScraper):
         except Exception as e:
             print("BeautifulSoup error:", e)
             return articles
-        # detect if have access
+            
         title_tag = soup.title
         title = title_tag.string if title_tag and title_tag.string else None
 
         if title == "Access Denied":
             print("Access Denied")
             return articles
-        # detect which layout exists
+            
         usa_results = soup.select("div.content-block-item.result")
-        # NOTE: if have another URL, MUST add section here to deal w/ it
-        # --- USA.gov search results ---
         if usa_results:
             for result in usa_results:
                 title_el = result.select_one("h4.title a")
@@ -98,14 +99,14 @@ class GovScraper(ParentScraper):
                 if not title_el:
                     continue
 
-                title = title_el.get_text(strip=True)
+                title_text = title_el.get_text(strip=True)
                 url = title_el.get("href")
                 description = desc_el.get_text(strip=True) if desc_el else None
 
                 articles.append(
                     {
                         "source_id": source_id,
-                        "title": title,
+                        "title": title_text,
                         "content": description,
                         "url": url,
                         "published_at": None,
@@ -117,7 +118,6 @@ class GovScraper(ParentScraper):
 
     def parse_rss(self, content: str, source_id: int) -> List[Dict[str, Any]]:
         root = ET.fromstring(content)
-
         articles: List[Dict[str, Any]] = []
 
         for item in root.findall(".//item"):

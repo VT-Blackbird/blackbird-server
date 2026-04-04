@@ -82,7 +82,7 @@ class SocialScraper(ParentScraper):
 
         # 1. Fetch Reddit from DB
         reddit_cfg = self.get_source_config("Reddit")
-        if reddit_cfg and reddit_cfg.is_enabled:
+        if reddit_cfg and reddit_cfg.is_enabled and reddit_cfg.id is not None:
             url = self.build_url(reddit_cfg.base_url, "Reddit", query, lan, region)
             print(f"[SocialScraper] Fetching reddit: {url}")
             content, _ = await self.load(url)
@@ -91,7 +91,7 @@ class SocialScraper(ParentScraper):
 
         # 2. Fetch Bluesky from DB
         bsky_cfg = self.get_source_config("Bluesky")
-        if bsky_cfg and bsky_cfg.is_enabled:
+        if bsky_cfg and bsky_cfg.is_enabled and bsky_cfg.id is not None:
             token = await self._login_bsky()
             url = self.build_url(bsky_cfg.base_url, "Bluesky", query, lan, region)
             print(f"[SocialScraper] Fetching bluesky: {url}")
@@ -109,9 +109,9 @@ class SocialScraper(ParentScraper):
                         url, headers=headers, timeout=15000
                     )
                     if response.ok:
-                        content = await response.text()
+                        bsky_json_text = await response.text()
                         all_results.extend(
-                            self.parse_bluesky_json(content, bsky_cfg.id)
+                            self.parse_bluesky_json(bsky_json_text, bsky_cfg.id)
                         )
             except Exception as e:
                 print(f"[SocialScraper] Bluesky request error: {e}")
@@ -152,7 +152,13 @@ class SocialScraper(ParentScraper):
             root = ET.fromstring(content)
             for entry in root.findall("atom:entry", namespaces):
                 link_tag = entry.find("atom:link", namespaces=namespaces)
-                url = link_tag.get("href") if link_tag is not None else ""
+                
+                # Ensure url is a string to satisfy MyPy
+                url = ""
+                if link_tag is not None:
+                    raw_url = link_tag.get("href")
+                    url = raw_url if isinstance(raw_url, str) else ""
+                
                 if "/comments/" not in url:
                     continue
 
