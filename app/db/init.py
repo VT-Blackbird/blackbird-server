@@ -102,7 +102,7 @@ def seed_proxies() -> None:
         for p in proxies_config:
             server_addr = p.get("server")
             username = p.get("username")
-            
+
             if not server_addr:
                 continue
 
@@ -124,7 +124,7 @@ def seed_proxies() -> None:
                     is_active=True
                 )
                 session.add(new_proxy)
-        
+
         session.commit()
         logger.info("Proxy seeding complete.")
 
