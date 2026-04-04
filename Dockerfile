@@ -17,8 +17,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 
 #install dependency for ML model
-RUN playwright install --with-deps && \
-    python -m nltk.downloader punkt
+RUN playwright install --with-deps
 # 5. Copy the rest of the application
 COPY . .
 
