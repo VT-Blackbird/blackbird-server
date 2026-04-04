@@ -148,17 +148,17 @@ More information on git-lfs commands can be found in the tutorial [here](https:/
 
 ### Docker Command Reference
 
-| Action | Command | Notes                                                                 |
-| :--- | :--- |:----------------------------------------------------------------------|
-| Build backend image | `sudo docker compose build backend` | Creates or updates the image using the Dockerfile and requirements    |
+| Action | Command | Notes |
+| :--- | :--- | :--- |
+| Build backend image | `sudo docker compose build backend` | Creates or updates the image using the Dockerfile and requirements |
 | Start stack (detached) | `sudo docker compose up -d` | Runs full stack in background; creates containers if they don’t exist |
-| Stop services | `sudo docker compose stop` | Stops containers without deleting them                                |
-| Restart backend | `sudo docker compose restart backend` | Restarts container using existing image                               |
-| Stop and remove | `sudo docker compose down` | Cleans up containers, networks, and default volumes                   |
+| Stop services | `sudo docker compose stop` | Stops containers without deleting them |
+| Restart backend | `sudo docker compose restart backend` | Restarts container using existing image |
+| Stop and remove | `sudo docker compose down` | Cleans up containers, networks, and default volumes |
 | Rebuild and recreate | `sudo docker compose up -d --build` | Ensures container runs the latest image after code/dependency changes |
-| Run tests | `sudo docker compose run --rm backend pytest` | Temporary container; removed after running                            |
-| Run specific test | `sudo docker compose run --rm backend pytest tests/test_specific.py` | Useful for targeted testing                                           |
-| Access container shell | `sudo docker compose exec backend /bin/bash` | Open interactive shell in a running container                         |
-| View DB logs | `sudo docker compose logs -f db` | Useful for monitoring database initialization or connection issues    |
-| View running containers | `sudo docker ps` | Shows active containers                                               |
-| Access Postgres CLI | `sudo docker compose exec db psql -U postgres -d blackbird` | Directly query the database from the terminal                         |
+| Run tests | `sudo docker compose run --rm backend pytest` | Temporary container; removed after running |
+| Run specific test | `sudo docker compose run --rm backend pytest tests/test_specific.py` | Useful for targeted testing |
+| Access container shell | `sudo docker compose exec backend /bin/bash` | Open interactive shell in a running container |
+| View DB logs | `sudo docker compose logs -f db` | Useful for monitoring database initialization or connection issues |
+| View running containers | `sudo docker ps` | Shows active containers |
+| Access Postgres CLI | `sudo docker compose exec db psql -U postgres -d blackbird` | Directly query the database from the terminal |
