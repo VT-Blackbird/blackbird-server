@@ -87,7 +87,7 @@ def seed_proxies() -> None:
     Checks uniqueness based on both server and username.
     """
     try:
-        proxies_config = load_proxies()
+        proxies_config = load_proxies(source="env")
     except ValueError as e:
         logger.error(f"Failed to seed proxies: {e}")
         return
