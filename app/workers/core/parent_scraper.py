@@ -46,6 +46,12 @@ class ParentScraper:
 
     # Main method to run the scraper, handles setup,
     # scraping, saving results, and cleanup
+    # Orchestrates scraping workflow:
+    # 1. Sets up browser and proxy
+    # 2. Executes scraping logic defined in subclass
+    # 3. Saves results using subclass implementation
+    # lan  - language of proxy
+    # region - region proxy is based
     async def run(self, query: Any, lan: str, region: str) -> Optional[List[Any]]:
         await self.setup()
         results: Optional[List[Any]] = None
@@ -85,6 +91,7 @@ class ParentScraper:
         if self.browser:
             await self.browser.close()
         if self.browser_manager:
+            # closing might invalidate future launches if shared obj across scrapers
             await self.browser_manager.close()
 
         # reset references
@@ -184,6 +191,9 @@ class ParentScraper:
             last_count = current_count
             await self.page.mouse.wheel(0, scroll_step)
             await random_delay(*delay_range)
+
+    def get_curr_proxy(self) -> Optional[ProxyConfig]:
+        return self.curr_proxy
 
     async def html_fallback(
         self, query: Query, lan: str, region: str, source_id: int
@@ -331,6 +341,7 @@ class ParentScraper:
                     "sentiment_score": None,
                 }
             )
+        print(f"\t\t Parsed {len(articles)} articles from HTML")
         return articles
 
     def _extract_article_text(self, html: str) -> Optional[str]:
@@ -343,6 +354,11 @@ class ParentScraper:
         return text if len(text) > 50 else None
 
     def resolve_google_news_url(self, wrapper_url: str) -> Optional[str]:
+        """Resolve a Google News wrapper URL to the final article URL.
+        The function attempts to rotate through the configured proxy (if any)
+        and uses ``gnewsdecoder`` to decode the wrapper.  Any exception is
+        caught and logged, returning ``None`` on failure.
+        """
         try:
             proxy_str: Optional[str] = self.proxy_manager.get_rotating_proxy_url()
             decoded: Any
