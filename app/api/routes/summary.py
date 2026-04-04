@@ -1,9 +1,8 @@
-from typing import Any, Coroutine
 
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.summary_request import SummaryRequest
-from app.schemas.summary_response import SummaryResponse, SummaryQueryResponse
+from app.schemas.summary_response import SummaryQueryResponse, SummaryResponse
 from app.services.summary_service import summary_service
 
 router = APIRouter()
@@ -26,7 +25,7 @@ async def get_queries()-> SummaryQueryResponse:
     try:
         return await summary_service.get_queries()
     except ValueError as e:
-        # Catch specific business logic errors (like an unsupported platform)
+        # Business Logic Errors
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         # Reserve 500 for actual server crashes

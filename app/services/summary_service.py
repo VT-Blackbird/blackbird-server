@@ -1,17 +1,21 @@
 import time
-from typing import List
-from sqlmodel import Session, select
+from typing import Sequence
+
+# Import 'desc' and 'col' explicitly
+from sqlmodel import Session, col, desc, select
+
 from app.db.session import engine
-from app.models import Search, Article  # Ensure Article is imported
+from app.models import Article, Search
 from app.schemas.summary_request import SummaryRequest
 from app.schemas.summary_response import (
+    SummaryQueryResponse,
     SummaryResponse,
     SummaryResponseItem,
-    SummaryQueryResponse
 )
 
+
 class SummaryService:
-    def __init__(self):
+    def __init__(self) -> None:
         print("Summary Service")
         pass
 
@@ -21,12 +25,15 @@ class SummaryService:
         with Session(engine) as session:
             # 1. Find all search IDs associated with this query text
             # We use a join or a subquery to get articles for this specific topic
+            # In execute_summary
             statement = (
                 select(Article)
                 .join(Search)
                 .where(Search.query_text == request.query)
-                .distinct(Article.url)
-                .order_by(Article.published_at.desc())
+                .distinct(col(Article.url))
+                # The first order_by MUST be the same as the distinct column
+                .order_by(col(Article.url), desc(Article.published_at)
+                          )
             )
             db_articles = session.exec(statement).all()
 
@@ -45,7 +52,7 @@ class SummaryService:
                     source_id=str(art.source_id),
                     published_at=art.published_at,
                     sentiment=None,  # Placeholder for your ML logic
-                    relevance_score=None,
+                    relevance_score=art.relevance_score,
                     geographic_area="US"  # Default or pulled from metadata
                 )
                 results.append(item)
@@ -65,12 +72,10 @@ class SummaryService:
             statement = select(Search.query_text).distinct()
 
             # 2. Execute and get the results as a list of strings
-            results: List[str] = session.exec(statement).all()
+            results_seq: Sequence[str] = session.exec(statement).all()
+            results_list = list(results_seq)
 
-            # Based on your table data, 'results' would be:
-            # ["US Air Force Iran Latest", "US Air Force Leadership"]
-            print(results)
             # 3. Return formatted for your Response schema
-            return SummaryQueryResponse(queries_list=results)
+            return SummaryQueryResponse(queries_list=results_list)
 
-summary_service = SummaryService()
+summary_service: SummaryService = SummaryService()

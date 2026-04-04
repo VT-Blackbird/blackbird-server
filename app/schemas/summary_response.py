@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
-from app.schemas.search_response import SentimentScores, SearchResultItem, SearchMetrics
+from app.schemas.search_response import SentimentScores
+
 
 #Information per article
 class SummaryResponseItem(BaseModel):

@@ -3,6 +3,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
+
 class SummaryRequest(BaseModel):
     """
     Request schema for search queries coming from the frontend.
