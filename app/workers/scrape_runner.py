@@ -46,7 +46,7 @@ async def run_scraper() -> None:
         return
 
     # 2. Map SourceTypes to the correct Scraper Classes
-    scraper_mapping: Dict[SourceType, Type] = {
+    scraper_mapping: Dict[SourceType, Type[Any]] = {
         SourceType.NEWS: NewsScraper,
         SourceType.SOCIAL: SocialScraper,
         SourceType.OFFICIAL: GovScraper
