@@ -22,6 +22,7 @@ class SourceType(str, Enum):
 class ExtractionMethod(str, Enum):
     RSS = "RSS"
     STATIC_HTML = "STATIC_HTML"
+    JSON_API = "JSON_API"
     INFINITE_SCROLL = "INFINITE_SCROLL"
 
 

@@ -4,6 +4,8 @@ from sqlmodel import Session, SQLModel, select
 
 from app.db.session import engine
 from app.models import ExtractionMethod, Source, SourceType
+from app.models.proxy import Proxy
+from app.workers.core.utils import load_proxies
 
 # Logging to see init progress in docker logs
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +22,7 @@ def init_db() -> None:
 
     logger.info("Checking for initial seed data...")
     seed_sources()
+    seed_proxies()
 
 
 def seed_sources() -> None:
@@ -52,6 +55,14 @@ def seed_sources() -> None:
                 base_url="https://search.usa.gov/search?affiliate=aflink_all&query=",
                 is_enabled=True,
             ),
+            Source(
+                id=4,
+                name="Bluesky",
+                source_type=SourceType.SOCIAL,
+                extraction_method=ExtractionMethod.JSON_API,
+                base_url="https://api.bsky.app/xrpc/app.bsky.feed.searchPosts?",
+                is_enabled=True,
+            ),
         ]
 
         for source_data in initial_sources:
@@ -61,8 +72,61 @@ def seed_sources() -> None:
             if not existing:
                 logger.info(f"Seeding source: {source_data.name}")
                 session.add(source_data)
+            else:
+                # Update existing source in case extraction_method or base_url changed
+                existing.extraction_method = source_data.extraction_method
+                existing.base_url = source_data.base_url
+                session.add(existing)
 
         session.commit()
+
+
+def seed_proxies() -> None:
+    """
+    Seeds the 'Proxy' table using proxies loaded from environment via utils.
+    Checks uniqueness based on both server and username.
+    """
+    try:
+        proxies_config = load_proxies(source="env")
+    except ValueError as e:
+        logger.error(f"Failed to seed proxies: {e}")
+        return
+
+    if not proxies_config:
+        logger.warning(
+            "No proxies found to seed. Check PROXIES_JSON environment variable."
+        )
+        return
+
+    with Session(engine) as session:
+        for p in proxies_config:
+            server_addr = p.get("server")
+            username = p.get("username")
+            
+            if not server_addr:
+                continue
+
+            # Check for existing proxy using both server and username
+            statement = select(Proxy).where(
+                Proxy.server == server_addr,
+                Proxy.username == username
+            )
+            existing = session.exec(statement).first()
+
+            if not existing:
+                logger.info(f"Seeding proxy: {server_addr} (User: {username})")
+                new_proxy = Proxy(
+                    server=server_addr,
+                    username=username,
+                    password=p.get("password"),
+                    region=p.get("region") or "Unknown",
+                    language=p.get("language") or "en-US",
+                    is_active=True
+                )
+                session.add(new_proxy)
+        
+        session.commit()
+        logger.info("Proxy seeding complete.")
 
 
 if __name__ == "__main__":
