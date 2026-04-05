@@ -52,6 +52,11 @@ server/
 │   │   ├── init.py               # Table creation & initial seeding
 │   │   └── inspect_data.py       # CLI tool to view table entries
 │   │
+│   ├── ml/                       # Machine Learning/Sentiment analysis 
+│   │   ├── tsa_model_parameters/ # Targeted sentiment analysis parameters
+│   │   ├── targeted_sentiment.py # Sentiment analysis pipeline
+│   │   └── cleaner.py            # Relevance score
+│   │
 │   ├── services/                 # Business logic layer
 │   ├── workers/                  # Background scrapers (Social/News/Gov)
 │   └── utils/                    # Shared helper utilities

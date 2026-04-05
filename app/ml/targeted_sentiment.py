@@ -6,7 +6,7 @@ import nltk
 # from safetensors.torch import safetensors
 import safetensors
 import torch
-from transformers import RobertaTokenizer
+from transformers import RobertaTokenizerFast
 
 from app.ml.utils import (
     SpanTSA,
@@ -20,14 +20,16 @@ from app.ml.utils import (
 nltk.download('punkt_tab')
 
 #load model
-def load_model()->Tuple[SpanTSA, RobertaTokenizer]:
+def load_model()->Tuple[SpanTSA, RobertaTokenizerFast]:
     model:SpanTSA = SpanTSA("roberta-base", num_labels=5)
     # Load state_dict using safetensors.torch.load_file for .safetensors format
 
-    model.load_state_dict(safetensors.torch.load_file("app/ml/tsa_model_parameters/model.safetensors"))
+    model.load_state_dict(
+        safetensors.torch.load_file("app/ml/tsa_model_parameters/model.safetensors")
+    )
     model.eval()
 
-    tokenizer = RobertaTokenizer.from_pretrained("app/ml/tsa_model_parameters")
+    tokenizer = RobertaTokenizerFast.from_pretrained("app/ml/tsa_model_parameters")
     return model, tokenizer
 
 def load_data(path:str)->List[Dict[str, Any]] :
@@ -38,7 +40,7 @@ def load_data(path:str)->List[Dict[str, Any]] :
 #Uses model to make inference on sentiment for a single article
 def make_inference(
         model:SpanTSA,
-        tokenizer:RobertaTokenizer,
+        tokenizer:RobertaTokenizerFast,
         text:str,
         threshold: float=0.5
     )->Dict[str, Any]:
