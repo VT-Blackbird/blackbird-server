@@ -4,6 +4,7 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional
 
+from app.models.source import Source
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 from app.workers.core.utils import save_json
@@ -28,7 +29,6 @@ class SocialScraper(ParentScraper):
             return None
 
         print(f"[SocialScraper] Authenticating Bluesky for {self.BSKY_HANDLE}...")
-
         try:
             response = await self.context.request.post(
                 self.BSKY_AUTH_URL,
@@ -38,7 +38,6 @@ class SocialScraper(ParentScraper):
                 },
                 timeout=10000,
             )
-
             if response.ok:
                 data = await response.json()
                 self._bsky_token = data.get("accessJwt")
@@ -47,16 +46,10 @@ class SocialScraper(ParentScraper):
                 print(f"[SocialScraper] Auth failed with status {response.status}")
         except Exception as e:
             print(f"[SocialScraper] Auth error: {e}")
-
         return None
 
     def build_url(
-        self,
-        base_url: str,
-        platform: str,
-        query: Query,
-        language: str,
-        region: str,
+        self, base_url: str, platform: str, query: Query, language: str, region: str
     ) -> str:
         if platform == "Reddit":
             params = {
@@ -67,54 +60,54 @@ class SocialScraper(ParentScraper):
                 "gl": region,
             }
             return f"{base_url}{urllib.parse.urlencode(params)}"
-
         elif platform == "Bluesky":
             q_encoded = urllib.parse.quote(query.text)
             params = {"limit": "50", "sort": "top"}
             if language:
                 params["lang"] = language.split("-")[0]
             return f"{base_url}q={q_encoded}&{urllib.parse.urlencode(params)}"
-
         return ""
 
-    async def scrape(self, query: Query, lan: str, region: str) -> List[Dict[str, Any]]:
+    async def scrape(
+        self, query: Query, lan: str, region: str, sources: List[Source]
+    ) -> List[Dict[str, Any]]:
         all_results: List[Dict[str, Any]] = []
 
-        # 1. Fetch Reddit from DB
-        reddit_cfg = self.get_source_config("Reddit")
-        if reddit_cfg and reddit_cfg.is_enabled and reddit_cfg.id is not None:
-            url = self.build_url(reddit_cfg.base_url, "Reddit", query, lan, region)
-            print(f"[SocialScraper] Fetching reddit: {url}")
-            content, _ = await self.load(url)
-            if content:
-                all_results.extend(self.parse_rss(content, reddit_cfg.id))
+        for source in sources:
+            if not source.is_enabled or source.id is None:
+                continue
 
-        # 2. Fetch Bluesky from DB
-        bsky_cfg = self.get_source_config("Bluesky")
-        if bsky_cfg and bsky_cfg.is_enabled and bsky_cfg.id is not None:
-            token = await self._login_bsky()
-            url = self.build_url(bsky_cfg.base_url, "Bluesky", query, lan, region)
-            print(f"[SocialScraper] Fetching bluesky: {url}")
+            if source.name == "Reddit":
+                url = self.build_url(source.base_url, "Reddit", query, lan, region)
+                print(f"[SocialScraper] Fetching reddit: {url}")
+                content, _ = await self.load(url)
+                if content:
+                    all_results.extend(self.parse_rss(content, source.id))
 
-            headers = {
-                "User-Agent": self.user_agent or "Mozilla/5.0",
-                "Accept": "application/json",
-            }
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
+            elif source.name == "Bluesky":
+                token = await self._login_bsky()
+                url = self.build_url(source.base_url, "Bluesky", query, lan, region)
+                print(f"[SocialScraper] Fetching bluesky: {url}")
 
-            try:
-                if self.context:
-                    response = await self.context.request.get(
-                        url, headers=headers, timeout=15000
-                    )
-                    if response.ok:
-                        bsky_json_text = await response.text()
-                        all_results.extend(
-                            self.parse_bluesky_json(bsky_json_text, bsky_cfg.id)
+                headers = {
+                    "User-Agent": self.user_agent or "Mozilla/5.0",
+                    "Accept": "application/json",
+                }
+                if token:
+                    headers["Authorization"] = f"Bearer {token}"
+
+                try:
+                    if self.context:
+                        response = await self.context.request.get(
+                            url, headers=headers, timeout=15000
                         )
-            except Exception as e:
-                print(f"[SocialScraper] Bluesky request error: {e}")
+                        if response.ok:
+                            json_text = await response.text()
+                            all_results.extend(
+                                self.parse_bluesky_json(json_text, source.id)
+                            )
+                except Exception as e:
+                    print(f"[SocialScraper] Bluesky request error: {e}")
 
         return all_results
 
@@ -129,7 +122,6 @@ class SocialScraper(ParentScraper):
                 uri = post.get("uri", "")
                 rkey = uri.split("/")[-1] if "/" in uri else ""
                 post_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
-
                 articles.append(
                     {
                         "source_id": source_id,
@@ -152,13 +144,11 @@ class SocialScraper(ParentScraper):
             root = ET.fromstring(content)
             for entry in root.findall("atom:entry", namespaces):
                 link_tag = entry.find("atom:link", namespaces=namespaces)
-                
-                # Ensure url is a string to satisfy MyPy
                 url = ""
                 if link_tag is not None:
                     raw_url = link_tag.get("href")
                     url = raw_url if isinstance(raw_url, str) else ""
-                
+
                 if "/comments/" not in url:
                     continue
 
@@ -166,9 +156,8 @@ class SocialScraper(ParentScraper):
                     {
                         "source_id": source_id,
                         "title": entry.findtext("atom:title", namespaces=namespaces),
-                        "content": (
-                            entry.findtext("atom:content", namespaces=namespaces) or ""
-                        ),
+                        "content": entry.findtext("atom:content", namespaces=namespaces)
+                        or "",
                         "url": url,
                         "published_at": entry.findtext(
                             "atom:updated", namespaces=namespaces
