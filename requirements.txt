@@ -44,3 +44,8 @@ torch==2.2.2
 numpy==1.26.4
 nltk==3.9.4
 safetensors==0.7.0
+
+# =========================
+# Reliability / Retries
+# =========================
+tenacity==9.1.4

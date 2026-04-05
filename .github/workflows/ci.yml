@@ -7,8 +7,9 @@ on:
     branches: [ production, dev ]
 
 jobs:
-  quality-assurance:
-    name: Quality Assurance (Ruff, MyPy, Pytest)
+  # NEW JOB: Build once and cache
+  build-and-cache:
+    name: Build and Cache Docker Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,16 +29,47 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Run CI
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: backend-ci:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  quality-assurance:
+    name: Quality Assurance (Ruff, MyPy, Pytest)
+    needs: build-and-cache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (Uses Cache)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: backend-ci:latest
+          cache-from: type=gha
+
+      - name: Run QA
         run: |
-          docker compose build backend
           docker compose up -d db
-          sleep 10
+          # Use the newly built/loaded image
           docker compose run --rm backend python3 -m app.db.init
           docker compose run --rm backend bash ./scripts/check.sh
 
   code-coverage:
     name: Code Coverage Check
+    needs: build-and-cache
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -57,10 +89,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Run Coverage
+      - name: Build (Uses Cache)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: backend-ci:latest
+          cache-from: type=gha
+
+      - name: Run Coverage
         run: |
-          docker compose build backend
           docker compose up -d db
-          sleep 10
           docker compose run --rm backend python3 -m app.db.init
           docker compose run --rm backend bash ./scripts/coverage.sh
