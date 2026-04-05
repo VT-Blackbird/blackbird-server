@@ -12,5 +12,5 @@ BSKY_HANDLE=your_handle_here
 BSKY_APP_PASSWORD=your_app_password_here
 
 # PROXIES
-# If you want to use proxies, specify them here
-PROXIES_JSON = {[]}
+# If you want to use proxies, specify them here as a JSON string
+PROXIES_JSON = '{[]}'
