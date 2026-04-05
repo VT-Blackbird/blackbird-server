@@ -52,11 +52,17 @@ class ParentScraper:
     # 3. Saves results using subclass implementation
     # lan  - language of proxy
     # region - region proxy is based
-    async def run(self, query: Any, lan: str, region: str) -> Optional[List[Any]]:
+    async def run(
+        self,
+        query: Any,
+        lan: str,
+        region: str,
+        sources: List[Source],
+    ) -> Optional[List[Any]]:
         await self.setup()
         results: Optional[List[Any]] = None
         try:
-            results = await self.scrape(query, lan, region)
+            results = await self.scrape(query, lan, region, sources)
             if results:
                 await self.save_results(query, results)
                 print(f"Found Results for query: {query.text}")
@@ -164,7 +170,9 @@ class ParentScraper:
 
         return await self.page.content(), "html"
 
-    async def scrape(self, query: Any, lan: str, region: str) -> List[Any]:
+    async def scrape(
+        self, query: Any, lan: str, region: str, sources: List[Source]
+    ) -> List[Any]:
         raise NotImplementedError
 
     @staticmethod

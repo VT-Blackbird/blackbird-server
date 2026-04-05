@@ -1,10 +1,12 @@
 import asyncio
 import traceback
 from datetime import datetime
-from typing import Any, List
+from typing import Any, Dict, List, Type
 
+from app.models.source import Source, SourceType
+from app.utils.metadata_utils import get_all_sources
 from app.workers.core.proxy_manager import ProxyConfig
-from app.workers.core.query import Query  # if you created one
+from app.workers.core.query import Query
 from app.workers.core.utils import load_proxies
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
@@ -22,7 +24,8 @@ QUERIES = [
     Query(text="Artificial Intelligence")
 ]
 
-PROXIES: List[ProxyConfig] = load_proxies()
+# Pull proxies from Database
+PROXIES: List[ProxyConfig] = load_proxies(source="db")
 
 USER_AGENT: str = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -30,57 +33,81 @@ USER_AGENT: str = (
     "Chrome/120.0.0.0 Safari/537.36"
 )
 
-
 # -----------------------------
 # Runner
 # -----------------------------
 
+async def run_scraper() -> None:
+# 1. Fetch all enabled sources from the database using our new utility
+    all_sources = get_all_sources(only_enabled=True)
 
-async def run_scraper() ->None:
-    scrapers: List[Any] = [
-        NewsScraper(
-            proxies=PROXIES,
-            user_agent=USER_AGENT,
-        ),
-        SocialScraper(
-            proxies=PROXIES,
-            user_agent=USER_AGENT,
-        ),
-        GovScraper(
-            proxies=PROXIES,
-            user_agent=USER_AGENT,
-        )
-    ]
+    if not all_sources:
+        print("No enabled sources found in database. Did you run the init script?")
+        return
 
-    all_results :List[Any]= []
+    # 2. Map SourceTypes to the correct Scraper Classes
+    scraper_mapping: Dict[SourceType, Type[Any]] = {
+        SourceType.NEWS: NewsScraper,
+        SourceType.SOCIAL: SocialScraper,
+        SourceType.OFFICIAL: GovScraper
+    }
 
+    # 3. Group sources by their type so we can run them in batches
+    sources_by_type: Dict[SourceType, List[Source]] = {}
+    for src in all_sources:
+        sources_by_type.setdefault(src.source_type, []).append(src)
+
+    all_results: List[Any] = []
     start_time = datetime.now()
-    for scraper in scrapers:
-        print(f"\n=== Running scraper: {scraper.__class__.__name__} ===")
+
+    # 4. Iterate through each scraper type
+    for s_type, sources in sources_by_type.items():
+        scraper_cls = scraper_mapping.get(s_type)
+        if not scraper_cls:
+            continue
+
+        scraper = scraper_cls(proxies=PROXIES, user_agent=USER_AGENT)
+        scraper_name = scraper.__class__.__name__
+        source_names = [s.name for s in sources]
+        print(f"\n=== Running scraper: {scraper_name} for sources: {source_names} ===")
 
         for i, query in enumerate(QUERIES, start=1):
-            print(f"\n[{i}/{len(QUERIES)}] Running query: {query.text}")
+            print(f"[{i}/{len(QUERIES)}] Query: {query.text}")
+            
+            # Setup is handled inside .run() in our ParentScraper, 
+            # but we need the proxy info for the language/region args
             await scraper.setup()
+            
             try:
                 proxy = scraper.get_curr_proxy()
-                results = await scraper.run(query, proxy["language"], proxy["region"])
+                if not proxy:
+                    print("Skipping: No proxy available.")
+                    continue
+
+                results = await scraper.run(
+                    query, 
+                    proxy["language"], 
+                    proxy["region"], 
+                    sources
+                )
                 all_results.extend(results or [])
 
             except Exception as e:
                 print(f"Query failed: {query.text}")
                 print(e)
-                traceback.print_exc()  # Prints to console
+                traceback.print_exc()
+            finally:
+                # Ensure the browser closes after each query/scraper set
+                await scraper.close()
 
     elapsed = datetime.now() - start_time
 
-    print("\n===== SUMMARY =====")
+    print("\n" + "="*25)
+    print("===== SUMMARY =====")
     print(f"Total results: {len(all_results)}")
     print(f"Elapsed time: {elapsed}")
+    print("="*25 + "\n")
 
-
-# -----------------------------
-# Entry Point
-# -----------------------------
 
 if __name__ == "__main__":
     asyncio.run(run_scraper())

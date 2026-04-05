@@ -2,6 +2,8 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
+from app.utils.metadata_utils import get_enabled_source_names
+
 
 class SearchRequest(BaseModel):
     """
@@ -15,5 +17,9 @@ class SearchRequest(BaseModel):
     )
 
     platforms: List[str] = Field(
-        default=["Reddit", "Gov", "News"], description="Which sites to scrape"
+        default_factory=get_enabled_source_names,
+        description=(
+            "List of platform names to scrape. Defaults to all currently "
+            "enabled sources in the database."
+        ),
     )
