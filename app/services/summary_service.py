@@ -1,7 +1,6 @@
 import time
 from typing import Sequence
 
-# Import 'desc' and 'col' explicitly
 from sqlmodel import Session, col, desc, select
 
 from app.db.session import engine
@@ -12,11 +11,11 @@ from app.schemas.summary_response import (
     SummaryResponse,
     SummaryResponseItem,
 )
+from app.utils.metadata_utils import get_source_name_map
 
 
 class SummaryService:
     def __init__(self) -> None:
-        print("Summary Service")
         pass
 
     async def execute_summary(self, request: SummaryRequest) -> SummaryResponse:
@@ -37,12 +36,12 @@ class SummaryService:
             )
             db_articles = session.exec(statement).all()
 
-            # 2. Map Database Article objects to SummaryResponseItem schema
+            # 2. Dynamic Source Name Mapping
+            name_map = get_source_name_map()
+
             results = []
             for art in db_articles:
-                # Map source IDs back to names if necessary
-                source_map = {1: "Reddit", 2: "Google News", 3: "USA.gov"}
-                source_name = source_map.get(art.source_id, "Web")
+                source_name = name_map.get(art.source_id, "Web")
 
                 item = SummaryResponseItem(
                     id=str(art.id),
@@ -51,7 +50,7 @@ class SummaryService:
                     url=art.url,
                     source_id=str(art.source_id),
                     published_at=art.published_at,
-                    sentiment=None,  # Placeholder for your ML logic
+                    sentiment=None,  # Placeholder for ML logic
                     relevance_score=art.relevance_score,
                     geographic_area="US"  # Default or pulled from metadata
                 )
@@ -59,11 +58,10 @@ class SummaryService:
 
             execution_time = (time.time() - start_time) * 1000
 
-            # 3. Return the fully populated Package
             return SummaryResponse(
                 total_count=len(results),
                 execution_time_ms=round(execution_time, 2),
-                results=results
+                results=results,
             )
 
     async def get_queries(self) -> SummaryQueryResponse:
