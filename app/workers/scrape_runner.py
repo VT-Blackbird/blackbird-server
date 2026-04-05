@@ -3,10 +3,8 @@ import traceback
 from datetime import datetime
 from typing import Any, Dict, List, Type
 
-from sqlmodel import Session, select
-
-from app.db.session import engine
 from app.models.source import Source, SourceType
+from app.utils.metadata_utils import get_all_sources
 from app.workers.core.proxy_manager import ProxyConfig
 from app.workers.core.query import Query
 from app.workers.core.utils import load_proxies
@@ -40,10 +38,8 @@ USER_AGENT: str = (
 # -----------------------------
 
 async def run_scraper() -> None:
-    # 1. Fetch all enabled sources from the database
-    with Session(engine) as session:
-        statement = select(Source).where(Source.is_enabled)
-        all_sources = session.exec(statement).all()
+# 1. Fetch all enabled sources from the database using our new utility
+    all_sources = get_all_sources(only_enabled=True)
 
     if not all_sources:
         print("No enabled sources found in database. Did you run the init script?")
