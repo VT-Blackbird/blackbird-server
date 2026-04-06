@@ -29,11 +29,16 @@ def load_proxies(source: Literal["db", "env"] = "db") -> List[ProxyConfig]:
 
 def load_proxies_from_env() -> List[ProxyConfig]:
     """Parses PROXIES_JSON from environment variables."""
+    # raw = os.getenv("PROXIES_JSON")
+    # if raw is None:
+    #     raise RuntimeError("PROXIES_JSON is not set")
+    # if raw.strip() == "":
+    #     raise RuntimeError("PROXIES_JSON is empty")
+    """Parses PROXIES_JSON from environment variables."""
     raw = os.getenv("PROXIES_JSON")
-    if raw is None:
-        raise RuntimeError("PROXIES_JSON is not set")
-    if raw.strip() == "":
-        raise RuntimeError("PROXIES_JSON is empty")
+
+    if not raw:
+        return []
 
     try:
         proxies = json.loads(raw)
