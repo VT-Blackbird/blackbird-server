@@ -22,7 +22,10 @@ Before running the backend, ensure you have the following installed:
 
 - **Docker Engine** (Linux) or **Docker Desktop** (Windows / Mac)
   - [Install Docker](https://docs.docker.com/get-docker/)
-
+- **Git Large File Storage**
+  - Linux Command: sudo apt-get install git-lfs
+  - Windows: winget install GitHub.GitLFS
+    - If using wsl, must also install git-lfs within linux shell
 ---
 
 ## Project Structure
@@ -48,6 +51,11 @@ server/
 │   │   ├── session.py            # Engine & Session management
 │   │   ├── init.py               # Table creation & initial seeding
 │   │   └── inspect_data.py       # CLI tool to view table entries
+│   │
+│   ├── ml/                       # Machine Learning/Sentiment analysis 
+│   │   ├── tsa_model_parameters/ # Targeted sentiment analysis parameters
+│   │   ├── targeted_sentiment.py # Sentiment analysis pipeline
+│   │   └── cleaner.py            # Relevance score
 │   │
 │   ├── services/                 # Business logic layer
 │   ├── workers/                  # Background scrapers (Social/News/Gov)
@@ -105,6 +113,19 @@ The database uses a Docker volume named `postgres_data` to ensure searches and a
 | `docker compose stop` | **Safe**: Data is preserved. |
 | `docker compose down` | **Safe**: Data is preserved. |
 | `docker compose down -v` | **WIPED**: Deletes the volume and all stored data. |
+
+---
+## Git Large File Storage Commands
+More information on git-lfs commands can be found in the tutorial [here](https://medium.com/@pablojusue/git-lfs-and-dvc-the-ultimate-guide-to-managing-large-artifacts-in-mlops-c1c926e6c5f4 
+). Git-lfs stores large files as pointers. Once a file is tracked, make sure to add .gitattributes to the commit then you can use git as normal. 
+
+|Action |Command| Notes|
+|-------|--------|------|
+|Add a file to git-lfs | `git lfs track <file-path>` |
+| Add gitattributes to git| `git add .gitattributes`| must commit where tracking info is from 
+|View all files recognized as "tracked"| `git lfs ls-files`|
+|View all patterns you are tracking|`git lfs track`|
+
 
 ---
 

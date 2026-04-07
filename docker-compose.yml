@@ -13,8 +13,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: blackbird-backend
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     depends_on:

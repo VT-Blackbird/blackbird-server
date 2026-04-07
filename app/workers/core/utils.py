@@ -33,10 +33,14 @@ def load_proxies_from_env() -> List[ProxyConfig]:
 
     if not raw:
         return []
+    #trying to get compatible with unix and windows systems
+    raw = raw.strip()
+    if raw == "":
+        raise RuntimeError("PROXIES_JSON is set but empty")
 
     try:
         proxies = json.loads(raw)
-        cleaned = []
+        cleaned:List[ProxyConfig] = []
         for p in proxies:
             cleaned.append(
                 ProxyConfig(
