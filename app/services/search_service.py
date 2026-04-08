@@ -1,11 +1,13 @@
 import asyncio
+import hashlib
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 from dateutil import parser
 from sentence_transformers import SentenceTransformer, util
 from sqlmodel import Session
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.db.session import engine
 from app.ml.cleaner import DataCleaner
@@ -37,6 +39,18 @@ class SearchService:
         }
         self.cleaner = DataCleaner()
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
+
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=False  # We return None on total failure so the aggregator can skip it
+    )
+    async def _safe_scrape(self, scraper_inst: Any,
+                           query: str) -> Optional[List[Dict[str, Any]]]:
+        """Runs a scraper with exponential backoff."""
+        worker_query = ScraperQuery(text=query)
+        return await scraper_inst.run(worker_query, "en-US", "US")
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
@@ -75,7 +89,6 @@ class SearchService:
             for src in requested_sources:
                 sources_by_type.setdefault(src.source_type, []).append(src)
 
-            worker_query = ScraperQuery(text=request.query)
             tasks = []
             task_metadata = []
 
@@ -89,7 +102,7 @@ class SearchService:
                     )
 
                     scraper_inst = scraper_cls(proxies=proxies, user_agent=ua)
-                    tasks.append(scraper_inst.run(worker_query, "en-US", "US", sources))
+                    tasks.append(self._safe_scrape(scraper_inst, request.query))
                     task_metadata.append(s_type)
 
             scraper_results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -195,7 +208,7 @@ class SearchService:
         )
 
         return SearchResultItem(
-            id=str(hash(raw_item.get("url", ""))),
+            id=hashlib.md5(raw_item.get("url", "").encode()).hexdigest(),
             source=source_name,
             title=raw_item.get("title"),
             content=content,
