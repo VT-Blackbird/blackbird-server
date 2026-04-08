@@ -48,6 +48,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          PROXIES_JSON=${{ secrets.PROXIES_JSON }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          BSKY_HANDLE=${{ secrets.BSKY_HANDLE }}
+          BSKY_APP_PASSWORD=${{ secrets.BSKY_APP_PASSWORD }}
+          ENV=ci
+          EOF
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
