@@ -27,14 +27,11 @@ class Targeted_Sentiment():
     #load model
     def load_model(self)->Tuple[SpanTSA, AutoTokenizer]:
         model:SpanTSA = SpanTSA("roberta-base", num_labels=5)
-        # Load state_dict using safetensors.torch.load_file for .safetensors format
 
         model.load_state_dict(
             safetensors.torch.load_file("app/ml/tsa_model_parameters/model.safetensors")
         )
         model.eval()
-
-        # tokenizer = AutoTokenizer.from_pretrained("app/ml/tsa_model_parameters")
         tokenizer = AutoTokenizer.from_pretrained("roberta-base")
         return model, tokenizer
 
@@ -43,7 +40,7 @@ class Targeted_Sentiment():
             self,
             text:str,
             threshold: float=0.5
-        )->SentimentScores:
+        )->Tuple[str, float]:
         sentences = nltk.sent_tokenize(text)
 
         all_targets = []
@@ -76,10 +73,12 @@ class Targeted_Sentiment():
         doc_score:float = aggregate_document(all_targets)
         del all_targets
 
-        return SentimentScores(
+        SentimentScores(
             score = doc_score,
             label = update_label(doc_score)
         )
+        result:Tuple[str, float] = (update_label(doc_score), doc_score)
+        return result
 
 def load_data(path:str)->List[Dict[str, Any]] :
     with open(path, "r", encoding="utf-8") as f:
