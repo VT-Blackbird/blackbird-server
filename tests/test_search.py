@@ -16,6 +16,7 @@ def test_perform_search_success()->None:
     response = client.post("/api/v1/search/", json=payload)
 
     # 3. Assertions
+    print(f"Test Perform Search Response: {response.json()}")
     assert response.status_code == 200
 
     data = response.json()
@@ -75,6 +76,7 @@ def test_search_limit_and_variety() -> None:
     }
 
     response = client.post("/api/v1/search/", json=payload)
+    print(f"Test Search Limit and Variety Response: {response.json()}")
     assert response.status_code == 200
     data = response.json()
 

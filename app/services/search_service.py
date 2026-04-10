@@ -9,12 +9,14 @@ from sqlmodel import Session
 
 from app.db.session import engine
 from app.ml.cleaner import DataCleaner
+from app.ml.targeted_sentiment import Targeted_Sentiment
 from app.models import Article, Search, SearchSource
 from app.models.source import Source, SourceType
 from app.schemas.search_request import SearchRequest
 from app.schemas.search_response import (
     SearchResponse,
     SearchResultItem,
+    SentimentScores,
 )
 from app.utils.metadata_utils import (
     get_all_sources,
@@ -37,6 +39,7 @@ class SearchService:
         }
         self.cleaner = DataCleaner()
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.tsa_model = Targeted_Sentiment()
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
@@ -128,18 +131,20 @@ class SearchService:
                     item["relevance_score"] = score
 
                     source_id = int(item.get("source_id", 0))
-
+                    mapped: SearchResultItem = self._map_to_schema(item)
                     db_article = Article(
-                        title=item["title"],
-                        content=item["content"],
-                        url=item["url"],
-                        published_at=item.get("published_at"),
+                        title=mapped.title,
+                        content=mapped.content,
+                        url=mapped.url,
+                        published_at=mapped.published_at,
                         search_id=db_search.id,
                         source_id=source_id,
+                        sentiment_score=mapped.sentiment.score,
+                        sentiment_label=mapped.sentiment.label,
                         relevance_score=score,
                     )
                     session.add(db_article)
-                    final_results.append(self._map_to_schema(item))
+                    final_results.append(mapped)
 
                 session.commit()
 
@@ -164,8 +169,8 @@ class SearchService:
             results=limited_results,
         )
 
-    @staticmethod
-    def _map_to_schema(raw_item: Dict[str, Any]) -> SearchResultItem:
+    #@staticmethod
+    def _map_to_schema(self, raw_item: Dict[str, Any]) -> SearchResultItem:
         content = raw_item.get("content", "")
         if not isinstance(content, (str, bytes)):
             content = raw_item.get("title", "")
@@ -185,9 +190,9 @@ class SearchService:
                     parsed_date = parsed_date.replace(tzinfo=timezone.utc)
             except (ValueError, TypeError):
                 parsed_date = datetime.now(timezone.utc)
-
+        #Sentiment analysis
+        doc_sentiment: SentimentScores = self.tsa_model.make_inference(text=content)
         # Resolve Source Name from Utility mapping
-        # TODO: Call ml models for sentiment
         name_map = get_source_name_map()
         source_id = raw_item.get("source_id")
         source_name = name_map.get(
@@ -201,7 +206,7 @@ class SearchService:
             content=content,
             url=raw_item.get("url", ""),
             published_at=parsed_date,
-            sentiment=None,
+            sentiment=doc_sentiment,
             relevance_score=raw_item.get("relevance_score"),
         )
 
