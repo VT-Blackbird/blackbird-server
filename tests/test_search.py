@@ -1,7 +1,11 @@
+from typing import Any, Dict, List, Optional
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.article import Article
+from app.schemas.search_request import SearchRequest
 from app.services.search_service import search_service
 
 client = TestClient(app)
@@ -17,7 +21,6 @@ def test_perform_search_success()->None:
     response = client.post("/api/v1/search/", json=payload)
 
     # 3. Assertions
-    print(f"Test Perform Search Response: {response.json()}")
     assert response.status_code == 200
 
     data = response.json()
@@ -77,7 +80,6 @@ def test_search_limit_and_variety() -> None:
     }
 
     response = client.post("/api/v1/search/", json=payload)
-    print(f"Test Search Limit and Variety Response: {response.json()}")
     assert response.status_code == 200
     data = response.json()
 
@@ -101,3 +103,43 @@ def test_map_to_schema_edge_cases() -> None:
     assert result.content == "Edge Case"  # Fell back to title
     assert result.source == "Web"  # Fell back to default source
     assert result.published_at is not None  # Fell back to now()
+
+
+def test_no_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    # IMPORTANT: Patch the function in the file where it is CONSUMED
+    # Assuming search_service.py imports load_proxies from app.workers.core.utils
+    monkeypatch.setattr("app.services.search_service.load_proxies",
+                        lambda source="db": [])
+
+    payload = {"query": "Virginia Tech", "limit": 5, "platforms": ["Reddit"]}
+    response = client.post("/api/v1/search/", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # This now officially tests the "if not proxies" error handling path
+    assert "results" in data
+
+
+@pytest.mark.asyncio
+async def test_execute_search_full_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Mock the scraper to return a fake article
+    mock_data = [{"title": "Test", "content": "Test content",
+                  "url": "http://test.com", "source_id": 1}]
+
+    async def mock_safe_scrape(*args: Any, **kwargs: Any)\
+            -> Optional[List[Dict[str, Any]]]:
+        return mock_data
+
+    # Patch the service method with your async mock
+    monkeypatch.setattr(
+        "app.services.search_service.SearchService._safe_scrape",
+        mock_safe_scrape
+    )
+
+
+    payload = SearchRequest(query="test", limit=5, platforms=["News"])
+    response = await search_service.execute_search(payload)
+
+    # This forces the code to run the cleaning, embedding, and DB session logic
+    assert len(response.results) > 0
