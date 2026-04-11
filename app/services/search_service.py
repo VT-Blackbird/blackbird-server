@@ -150,7 +150,7 @@ class SearchService:
                         title=item.get("title", ""),
                         content=item.get("content", ""),
                         url=item.get("url", ""),
-                        published_at=item.get("published_at", ""),
+                        published_at=item.get("published_at"),
                         search_id=db_search.id,
                         source_id=source_id,
                         relevance_score=score,
