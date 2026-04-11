@@ -43,17 +43,21 @@ class SearchService:
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
         self.tsa_model = Targeted_Sentiment()
 
-
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=False  # We return None on total failure so the aggregator can skip it
+        reraise=False
     )
-    async def _safe_scrape(self, scraper_inst: Any,
-                           query: str) -> Optional[List[Dict[str, Any]]]:
-        """Runs a scraper with exponential backoff."""
-        worker_query = ScraperQuery(text=query)
-        return await scraper_inst.run(worker_query, "en-US", "US")
+    async def _safe_scrape(
+            self, scraper_inst: Any, query_text: str, sources: List[Source]
+    ) -> Optional[List[Dict[str, Any]]]:
+        """
+        Runs a scraper with exponential backoff.
+        Now includes 'sources' to match the scraper's .run() signature.
+        """
+        worker_query = ScraperQuery(text=query_text)
+        # Passing all 4 required arguments to the scraper
+        return await scraper_inst.run(worker_query, "en-US", "US", sources)
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
         start_time = time.time()
