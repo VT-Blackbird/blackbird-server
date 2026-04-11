@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.article import Article
 from app.schemas.search_request import SearchRequest
 from app.services.search_service import search_service
 
@@ -89,13 +90,14 @@ def test_search_limit_and_variety() -> None:
 
 def test_map_to_schema_edge_cases() -> None:
     # 1. Test invalid date parsing (Hits line 134/142-145)
-    bad_data = {
-        "content": None,
-        "published_at": "not-a-date-string",
-        "source_id": 999,  # Testing an unknown source_id
-        "title": "Edge Case"
-    }
-    result = search_service._map_to_schema(bad_data)
+    data_bad = Article(
+        content="",
+        published_at="not-a-date-string",
+        source_id=999,
+        title="Edge Case",
+    )
+    #change type of bad_data
+    result = search_service._map_article_to_search_result_item(data_bad)
 
     # Assertions to ensure the fallbacks worked
     assert result.content == "Edge Case"  # Fell back to title

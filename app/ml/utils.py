@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -19,7 +19,7 @@ def decode_spans(
 ) -> List[tuple[int, int, float]]:
     start_probs = torch.sigmoid(start_logits)
     end_probs = torch.sigmoid(end_logits)
-
+    k = min(k, start_probs.size(0))
     top_starts: torch.Tensor = torch.topk(start_probs, k).indices
     top_ends: torch.Tensor = torch.topk(end_probs, k).indices
 
@@ -40,7 +40,7 @@ def decode_spans(
 def classify_spans(
     model: "SpanTSA",
     hidden_states: torch.Tensor,
-    spans: List[tuple[int, int, float]]
+    spans: List[Tuple[int, int, float]]
 ) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
 
@@ -65,50 +65,38 @@ def normalize_score(p: float) -> float:
     return (p - 4) / 2
 
 
-def aggregate_document(spans: List[Dict[str, Any]]) -> Optional[float]:
+def aggregate_document(spans: List[Dict[str, Any]]) -> float:
     if not spans:
-        return None
+        return -2.0
     scores: List[float] = [normalize_score(s["polarity"]) for s in spans]
     return sum(scores) / len(scores)
-
-
-def update_document(
-    output: List[Dict[str, Any]],
-    input_data: List[Dict[str, Any]],
-    num_classes: int = 3
-) -> List[Dict[str, Any]]:
-    assert num_classes in (3, 5), f"Input should be 3 or 5, was {num_classes}"
-
-    for item, y in zip(output, input_data, strict=True):
-        sentiment: Union[float, None] = item["document_sentiment"]
-        if sentiment is not None:
-            assert -1 <= sentiment <= 1, "Sentiment should be between -1 and 1"
-
-        if sentiment is None:
-            y["sentiment_label"] = None
-        elif num_classes == 3:
-            if sentiment < -0.33:
-                y["sentiment_label"] = "NEGATIVE"
-            elif sentiment >= 0.3:
-                y["sentiment_label"] = "POSITIVE"
-            else:
-                y["sentiment_label"] = "NEUTRAL"
+def update_label(
+        sentiment:float,
+        num_classes: int = 5
+) -> str:
+    if sentiment == -2.0:
+        return "NA"
+    if sentiment is not None:
+        assert -1 <= sentiment <= 1, "Sentiment should be between -1 and 1"
+        return "NA"
+    elif num_classes == 3:
+        if sentiment < -0.33:
+            return "NEGATIVE"
+        elif sentiment >= 0.3:
+            return "POSITIVE"
         else:
-            if sentiment < -0.6:
-                y["sentiment_label"] = "VERY_NEGATIVE"
-            elif sentiment < -0.2:
-                y["sentiment_label"] = "SOMEWHAT_NEGATIVE"
-            elif sentiment < 0.2:
-                y["sentiment_label"] = "NEUTRAL"
-            elif sentiment < 0.6:
-                y["sentiment_label"] = "SOMEWHAT_POSITIVE"
-            else:
-                y["sentiment_label"] = "VERY_POSITIVE"
-
-        y["sentiment_score"] = sentiment
-
-    return input_data
-
+            return "NEUTRAL"
+    else:
+        if sentiment < -0.6:
+            return "VERY_NEGATIVE"
+        elif sentiment < -0.2:
+            return "SOMEWHAT_NEGATIVE"
+        elif sentiment < 0.2:
+            return "NEUTRAL"
+        elif sentiment < 0.6:
+            return "SOMEWHAT_POSITIVE"
+        else:
+            return "VERY_POSITIVE"
 
 class SpanTSA(nn.Module):
     def __init__(self, model_name: str = "roberta-base", num_labels: int = 5) -> None:

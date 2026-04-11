@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from dateutil import parser
 from sentence_transformers import SentenceTransformer, util
@@ -11,12 +11,14 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.db.session import engine
 from app.ml.cleaner import DataCleaner
+from app.ml.targeted_sentiment import Targeted_Sentiment
 from app.models import Article, Search, SearchSource
 from app.models.source import Source, SourceType
 from app.schemas.search_request import SearchRequest
 from app.schemas.search_response import (
     SearchResponse,
     SearchResultItem,
+    SentimentScores,
 )
 from app.utils.metadata_utils import (
     get_all_sources,
@@ -39,6 +41,7 @@ class SearchService:
         }
         self.cleaner = DataCleaner()
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.tsa_model = Targeted_Sentiment()
 
 
     @retry(
@@ -139,20 +142,23 @@ class SearchService:
                 for idx, item in enumerate(temp_items):
                     score = float(cosine_scores[idx])
                     item["relevance_score"] = score
-
                     source_id = int(item.get("source_id", 0))
-
+                    # Sentiment analysis
+                    doc_sentiment:Tuple[str, float] = self.tsa_model.make_inference(
+                        text=item["content"])
                     db_article = Article(
-                        title=item["title"],
-                        content=item["content"],
-                        url=item["url"],
+                        title=item.get("title", ""),
+                        content=item.get("content", ""),
+                        url=item.get("url", ""),
                         published_at=item.get("published_at"),
                         search_id=db_search.id,
                         source_id=source_id,
                         relevance_score=score,
+                        sentiment_score = doc_sentiment[1],
+                        sentiment_label = doc_sentiment[0],
                     )
                     session.add(db_article)
-                    final_results.append(self._map_to_schema(item))
+                    final_results.append(self._map_article_to_search_result_item(db_article))
 
                 session.commit()
 
@@ -177,16 +183,15 @@ class SearchService:
             results=limited_results,
         )
 
-    @staticmethod
-    def _map_to_schema(raw_item: Dict[str, Any]) -> SearchResultItem:
-        content = raw_item.get("content", "")
+    def _map_article_to_search_result_item(self, art:Article) -> SearchResultItem:
+        content = art.content or ""
         if not isinstance(content, (str, bytes)):
-            content = raw_item.get("title", "")
+            content = art.title
 
         if len(content) > 300:
             content = content[:297] + "..."
 
-        raw_date = raw_item.get("published_at")
+        raw_date = art.published_at
         if not raw_date:
             parsed_date = datetime.now(timezone.utc)
         elif isinstance(raw_date, datetime):
@@ -200,22 +205,25 @@ class SearchService:
                 parsed_date = datetime.now(timezone.utc)
 
         # Resolve Source Name from Utility mapping
-        # TODO: Call ml models for sentiment
         name_map = get_source_name_map()
-        source_id = raw_item.get("source_id")
+        source_id = art.source_id
         source_name = name_map.get(
             int(source_id) if source_id is not None else 0, "Web"
         )
-
+        #Resolve Sentiment Analysis mapping
+        sentiment_obj: SentimentScores = SentimentScores(
+            label = art.sentiment_label or "",
+            score = art.sentiment_score or -2.0,
+        )
         return SearchResultItem(
-            id=hashlib.md5(raw_item.get("url", "").encode()).hexdigest(),
+            id=hashlib.md5((art.url or "").encode()).hexdigest(),
             source=source_name,
-            title=raw_item.get("title"),
-            content=content,
-            url=raw_item.get("url", ""),
+            title=art.title,
+            content=content or art.title,
+            url=art.url or "",
             published_at=parsed_date,
-            sentiment=None,
-            relevance_score=raw_item.get("relevance_score"),
+            sentiment=sentiment_obj,
+            relevance_score=art.relevance_score,
         )
 
 # Create a singleton instance to be used by the routes
