@@ -109,7 +109,8 @@ class SearchService:
                     )
 
                     scraper_inst = scraper_cls(proxies=proxies, user_agent=ua)
-                    tasks.append(self._safe_scrape(scraper_inst, request.query))
+                    tasks.append(self._safe_scrape(scraper_inst,
+                                                   request.query, sources))
                     task_metadata.append(s_type)
 
             scraper_results = await asyncio.gather(*tasks, return_exceptions=True)
