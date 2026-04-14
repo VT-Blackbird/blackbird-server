@@ -31,8 +31,14 @@ class SearchResponse(BaseModel):
     """
     The final 'Package' sent back to the frontend.
     """
-
+    
+    search_id: int = Field(
+        ..., description="The unique ID of this search session for future filtering"
+    )
     total_count: int
     execution_time_ms: float
-    metrics: Optional[SearchMetrics] = None
     results: List[SearchResultItem]
+    
+    # Placeholders for dashboard metrics
+    top_keywords: List[str] = Field(default_factory=list)
+    sentiment_distribution: Dict[str, float] = Field(default_factory=dict)
