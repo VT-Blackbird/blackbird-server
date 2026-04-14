@@ -1,4 +1,5 @@
 import logging
+import os
 
 from sqlmodel import Session, SQLModel, select
 
@@ -6,11 +7,17 @@ from app.db.session import engine
 from app.models import ExtractionMethod, Source, SourceType
 from app.models.proxy import Proxy
 from app.workers.core.utils import load_proxies
+from app.models.user import User
+from app.core.security import get_password_hash
+from dotenv import load_dotenv
+
+# Load the .env file explicitly
+load_dotenv()
+
 
 # Logging to see init progress in docker logs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 def init_db() -> None:
     """
@@ -23,6 +30,7 @@ def init_db() -> None:
     logger.info("Checking for initial seed data...")
     seed_sources()
     seed_proxies()
+    seed_users()
 
 
 def seed_sources() -> None:
@@ -127,6 +135,29 @@ def seed_proxies() -> None:
 
         session.commit()
         logger.info("Proxy seeding complete.")
+
+
+def seed_users() -> None:
+    """Ensures at least one admin user exists in the database."""
+    # Hardcoded for initial setup - in prod, move these to .env
+    initial_username = os.getenv("ADMIN_USERNAME")
+    initial_password = os.getenv("ADMIN_PASSWORD")
+
+    with Session(engine) as session:
+        statement = select(User).where(User.username == initial_username)
+        existing = session.exec(statement).first()
+
+        if not existing:
+            logger.info(f"Seeding initial user: {initial_username}")
+            new_user = User(
+                username=initial_username,
+                hashed_password=get_password_hash(initial_password),
+                is_active=True
+            )
+            session.add(new_user)
+            session.commit()
+        else:
+            logger.info("Admin user already exists. Skipping user seed.")
 
 
 if __name__ == "__main__":

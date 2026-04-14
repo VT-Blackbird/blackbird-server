@@ -51,3 +51,9 @@ safetensors==0.7.0
 # Reliability / Retries
 # =========================
 tenacity==9.1.4
+
+# =========================
+# Security
+# =========================
+passlib[bcrypt]==1.7.4
+pyjwt==2.8.0
