@@ -3,10 +3,11 @@ import hashlib
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Type
+from uuid import UUID
 
 from dateutil import parser
 from sentence_transformers import SentenceTransformer, util
-from sqlmodel import Session
+from sqlmodel import Session, desc, select
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.db.session import engine
@@ -20,6 +21,7 @@ from app.schemas.search_response import (
     SearchResultItem,
     SentimentScores,
 )
+from app.utils.boolean_utils import apply_boolean_filters
 from app.utils.metadata_utils import (
     get_all_sources,
     get_source_name_map,
@@ -60,14 +62,40 @@ class SearchService:
         return await scraper_inst.run(worker_query, "en-US", "US", sources)
 
     async def execute_search(self, request: SearchRequest) -> SearchResponse:
+        """
+        Primary entry point for searches. 
+        If search_id is provided, it filters existing data. 
+        Otherwise, it triggers a new scraping pipeline.
+        """
         start_time = time.time()
+        
+        # Identity Resolution (UUID)
+        search_id: Optional[UUID] = request.search_id
 
+        # Ingestion Path (New Scrape)
+        if not search_id:
+            search_id = await self._ingest_new_search(request)
+
+        # Retrieval & Boolean Filtering Path
+        results = self._fetch_filtered_articles(search_id, request)
+
+        execution_time = (time.time() - start_time) * 1000
+
+        # Ensure we return the ID as a UUID object
+        return SearchResponse(
+            search_id=search_id,
+            total_count=len(results),
+            execution_time_ms=round(execution_time, 2),
+            results=results
+        )
+
+    async def _ingest_new_search(self, request: SearchRequest) -> UUID:
+        """Performs full scraping, cleaning, and persistence for a new query."""
         requested_sources = get_sources_by_names(request.platforms)
         if not requested_sources:
             all_enabled = get_all_sources(only_enabled=True)
             requested_sources = [
-                s
-                for s in all_enabled
+                s for s in all_enabled 
                 if any(p.lower() in s.name.lower() for p in request.platforms)
             ]
 
@@ -83,13 +111,17 @@ class SearchService:
                 all_sources_requested=is_full_search,
             )
             session.add(db_search)
-            session.flush()
+            session.flush() # SQLModel handles UUID generation if set to primary_key
 
             if not is_full_search:
                 for source in requested_sources:
                     if source.id:
-                        ss = SearchSource(search_id=db_search.id, source_id=source.id)
-                        session.add(ss)
+                        session.add(
+                            SearchSource(
+                                search_id=db_search.id,
+                                source_id=source.id
+                            )
+                        )
 
             proxies = load_proxies(source="db")
             sources_by_type: Dict[SourceType, List[Source]] = {}
@@ -126,15 +158,11 @@ class SearchService:
                 for item in platform_output:
                     if not item or not isinstance(item, dict):
                         continue
-
                     raw_text = item.get("content", "") or item.get("title", "")
                     if not self.cleaner.is_english(raw_text):
                         continue
-
                     item["content"] = self.cleaner.clean(raw_text)
                     temp_items.append(item)
-
-            final_results: List[SearchResultItem] = []
 
             if temp_items:
                 query_emb = self.model.encode(request.query, convert_to_tensor=True)
@@ -146,7 +174,6 @@ class SearchService:
 
                 for idx, item in enumerate(temp_items):
                     score = float(cosine_scores[idx])
-                    item["relevance_score"] = score
                     source_id = int(item.get("source_id", 0))
                     # Sentiment analysis
                     doc_sentiment:Tuple[str, float] = self.tsa_model.make_inference(
@@ -163,36 +190,34 @@ class SearchService:
                         sentiment_label = doc_sentiment[0],
                     )
                     session.add(db_article)
-                    final_results.append(self._map_article_to_search_result_item(db_article))
-
                 session.commit()
+            
+            # The id is now a UUID object
+            return db_search.id
 
-        seen_urls = set()
-        unique_results = []
-        for res in final_results:
-            if res.url not in seen_urls:
-                unique_results.append(res)
-                seen_urls.add(res.url)
-
-        # High score at the top
-        unique_results.sort(key=lambda x: (x.relevance_score or 0), reverse=True)
-
-        limit = request.limit if request.limit > 0 else 10
-        limited_results = unique_results[:limit]
-
-        execution_time = (time.time() - start_time) * 1000
-
-        return SearchResponse(
-            total_count=len(limited_results),
-            execution_time_ms=round(execution_time, 2),
-            results=limited_results,
-        )
+    def _fetch_filtered_articles(
+        self, search_id: UUID, request: SearchRequest
+    ) -> List[SearchResultItem]:
+        """Fetches articles for a search_id (UUID) and applies filters."""
+        with Session(engine) as session:
+            statement = select(Article).where(Article.search_id == search_id)
+            
+            if request.filters:
+                statement = apply_boolean_filters(statement, request.filters)
+            
+            statement = statement.order_by(desc(Article.relevance_score))
+            limit = request.limit if request.limit > 0 else 20
+            statement = statement.limit(limit)
+            
+            db_articles = session.exec(statement).all()
+            
+            return [
+                self._map_article_to_search_result_item(art)
+                for art in db_articles
+            ]
 
     def _map_article_to_search_result_item(self, art:Article) -> SearchResultItem:
         content = art.content or ""
-        if not isinstance(content, (str, bytes)):
-            content = art.title
-
         if len(content) > 300:
             content = content[:297] + "..."
 
@@ -220,6 +245,7 @@ class SearchService:
             label = art.sentiment_label or "",
             score = art.sentiment_score or -2.0,
         )
+
         return SearchResultItem(
             id=hashlib.md5((art.url or "").encode()).hexdigest(),
             source=source_name,

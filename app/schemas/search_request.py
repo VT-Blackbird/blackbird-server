@@ -1,4 +1,5 @@
 from typing import List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -40,7 +41,7 @@ class SearchRequest(BaseModel):
     )
 
     # Boolean Search & Identity Logic
-    search_id: Optional[int] = Field(
+    search_id: Optional[UUID] = Field(
         None, 
         description=(
             "Target a specific existing search session by its ID to skip "

@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -32,7 +33,7 @@ class SearchResponse(BaseModel):
     The final 'Package' sent back to the frontend.
     """
     
-    search_id: int = Field(
+    search_id: UUID = Field(
         ..., description="The unique ID of this search session for future filtering"
     )
     total_count: int
