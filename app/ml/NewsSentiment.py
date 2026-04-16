@@ -28,10 +28,9 @@ class NewsSentiment():
             confidence = max(pred.probas.values())
 
             if confidence >= threshold:
-                # label_map = {"NEG": -1.0, "NEU": 0.0, "POS": 1.0}
-                # score = label_map.get(pred.output, 0.0)
-
-                score:float = pred.probas[pred.output] or -2.0
+                label_map = {"NEG": -1.0, "NEU": 0.0, "POS": 1.0}
+                bin = label_map.get(pred.output, 0.0)
+                score:float = pred.probas[pred.output]*bin or -2.0
                 all_sentiment.append(score)
 
         if not all_sentiment:
@@ -50,9 +49,8 @@ class NewsSentiment():
     ) -> str:
         if sentiment == -2.0:
             return "NA"
-        if sentiment is not None:
-            assert -1 <= sentiment <= 1, "Sentiment should be between -1 and 1"
-
+        if sentiment is not None and (sentiment > 1 or sentiment < -1):
+            return "NA"
         if num_classes == 3:
             if sentiment < -0.33:
                 return "NEGATIVE"
