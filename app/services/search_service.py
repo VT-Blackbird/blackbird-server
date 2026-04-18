@@ -54,7 +54,7 @@ class SearchService:
             self, scraper_inst: Any, query_text: str, sources: List[Source]
     ) -> Optional[List[Dict[str, Any]]]:
         """
-        Runs a scraper with exponential backoff.
+        Runs scraper with exponential backoff.
         Now includes 'sources' to match the scraper's .run() signature.
         """
         worker_query = ScraperQuery(text=query_text)
