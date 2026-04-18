@@ -11,7 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.db.session import engine
 from app.ml.cleaner import DataCleaner
-from app.ml.targeted_sentiment import Targeted_Sentiment
+from app.ml.NewsSentiment import NewsSentiment
 from app.models import Article, Search, SearchSource
 from app.models.source import Source, SourceType
 from app.schemas.search_request import SearchRequest
@@ -41,7 +41,7 @@ class SearchService:
         }
         self.cleaner = DataCleaner()
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
-        self.tsa_model = Targeted_Sentiment()
+        self.tsa_model = NewsSentiment()
 
     @retry(
         stop=stop_after_attempt(3),

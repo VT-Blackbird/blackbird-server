@@ -21,7 +21,7 @@ def test_perform_search_success()->None:
     response = client.post("/api/v1/search/", json=payload)
 
     # 3. Assertions
-    assert response.status_code == 200
+    assert response.status_code == 200,  f"\nresponse is not 200:\n {response.text}"
 
     data = response.json()
     assert "results" in data
@@ -80,7 +80,7 @@ def test_search_limit_and_variety() -> None:
     }
 
     response = client.post("/api/v1/search/", json=payload)
-    assert response.status_code == 200
+    assert response.status_code == 200,  f"\nresponse is not 200:\n {response.text}"
     data = response.json()
 
     # Assert limit is respected
@@ -114,7 +114,7 @@ def test_no_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = {"query": "Virginia Tech", "limit": 5, "platforms": ["Reddit"]}
     response = client.post("/api/v1/search/", json=payload)
 
-    assert response.status_code == 200
+    assert response.status_code == 200, f"\nresponse is not 200:\n {response.json}"
     data = response.json()
 
     # This now officially tests the "if not proxies" error handling path
