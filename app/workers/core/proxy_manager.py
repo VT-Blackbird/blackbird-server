@@ -49,6 +49,7 @@ class ProxyManager:
                                            len(self.proxies) -1)]
 
         proxy = ProxyConfig(
+            id=base.get("id"),
             server=base["server"],
             username=base["username"],
             password=base.get("password"),
