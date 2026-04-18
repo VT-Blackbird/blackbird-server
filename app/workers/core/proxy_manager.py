@@ -12,6 +12,7 @@ from typing import List, Optional, TypedDict
 
 
 class ProxyConfig(TypedDict):
+    id: Optional[int]
     server: str
     username: Optional[str]
     password: Optional[str]

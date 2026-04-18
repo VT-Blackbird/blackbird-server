@@ -44,6 +44,7 @@ def load_proxies_from_env() -> List[ProxyConfig]:
         for p in proxies:
             cleaned.append(
                 ProxyConfig(
+                    id=None,
                     server=p["server"],
                     username=p.get("username"),
                     password=p.get("password"),
@@ -68,6 +69,7 @@ def load_proxies_from_db() -> List[ProxyConfig]:
 
         return [
             ProxyConfig(
+                id = p.id,
                 server=p.server,
                 username=p.username,
                 password=p.password,
