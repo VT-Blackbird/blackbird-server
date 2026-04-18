@@ -38,8 +38,5 @@ class SearchResponse(BaseModel):
     )
     total_count: int
     execution_time_ms: float
+    metrics: Optional[SearchMetrics] = None
     results: List[SearchResultItem]
-    
-    # Placeholders for dashboard metrics
-    top_keywords: List[str] = Field(default_factory=list)
-    sentiment_distribution: Dict[str, float] = Field(default_factory=dict)
