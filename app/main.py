@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import search, summary, auth
+from app.api.routes import auth, search, summary
 
 app = FastAPI(
     title="Capstone Backend",

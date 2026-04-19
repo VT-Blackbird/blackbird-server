@@ -1,15 +1,15 @@
 import logging
 import os
 
+from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel, select
 
+from app.core.security import get_password_hash
 from app.db.session import engine
 from app.models import ExtractionMethod, Source, SourceType
 from app.models.proxy import Proxy
-from app.workers.core.utils import load_proxies
 from app.models.user import User
-from app.core.security import get_password_hash
-from dotenv import load_dotenv
+from app.workers.core.utils import load_proxies
 
 # Load the .env file explicitly
 load_dotenv()
@@ -142,6 +142,10 @@ def seed_users() -> None:
     # Hardcoded for initial setup - in prod, move these to .env
     initial_username = os.getenv("ADMIN_USERNAME")
     initial_password = os.getenv("ADMIN_PASSWORD")
+
+    if not initial_password:
+        logger.warning("ADMIN_PASSWORD not set in environment. Skipping user seed.")
+        return
 
     with Session(engine) as session:
         statement = select(User).where(User.username == initial_username)

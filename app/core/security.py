@@ -1,10 +1,9 @@
 import os
+from datetime import datetime, timedelta, timezone
+from typing import Any, Union
 
 import bcrypt
 import jwt
-from datetime import datetime, timedelta, timezone
-from typing import Any, Union
-from passlib.context import CryptContext
 from dotenv import load_dotenv
 
 # Load the .env file explicitly

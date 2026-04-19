@@ -1,50 +1,55 @@
+import os
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
+from app.api import deps  # <--- Import your dependencies
 from app.db.session import engine, get_session
 from app.main import app
 from app.models import Article, ExtractionMethod, Search, Source, SourceType
 
 
-# 1. THE CLEANER: This fixture handles the "Undo" button
-# Remove 'session: Session' from the arguments
+# 1. Auth Override: This handles the protected route gate
+async def override_get_current_user() -> Any:
+    return {
+        "username": os.getenv("ADMIN_USERNAME", "admin"),
+        "is_active": True
+    }
+
+# 2. THE CLEANER: This fixture handles the "Undo" button
 @pytest.fixture(name="session")
 def session_fixture() -> Session:
-    # Connect to the real Postgres engine
     connection = engine.connect()
-    # Begin a transaction
     transaction = connection.begin()
-
-    # Create the session here
     session = Session(bind=connection)
 
     yield session
 
-    # ROLLBACK: This deletes everything created during the test
     session.close()
     transaction.rollback()
     connection.close()
 
 
-# 2. THE BRIDGE: Tell FastAPI to use our "Rollback-able" session
+# 3. THE BRIDGE: Tell FastAPI to use our "Rollback-able" session AND our Mock User
 @pytest.fixture(name="client")
 def client_fixture(session: Session) -> TestClient:
     def override_get_session() -> Session:
         yield session
 
+    # Apply both overrides here
     app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[deps.get_current_user] = override_get_current_user
 
-    # 1. We MUST patch the engine inside the service
-    # to use the session's existing connection.
-    # Replace 'app.services.summary_service' with your actual service path.
     with patch("app.services.summary_service.engine", session.bind):
         yield TestClient(app)
 
+    # Clean up overrides after the test is done
     del app.dependency_overrides[get_session]
+    del app.dependency_overrides[deps.get_current_user]
 
 
 class TestSummary:
@@ -52,7 +57,7 @@ class TestSummary:
 
     def test_perform_summary_success(self, client: TestClient,
                                      session: Session) -> None:
-        # 1. Setup Source: Check if 'Reddit' exists first to avoid IntegrityError
+        # 1. Setup Source
         source = session.exec(select(Source).where(Source.name == "Reddit")).first()
 
         if not source:
@@ -63,7 +68,7 @@ class TestSummary:
                 base_url="https://reddit.com"
             )
             session.add(source)
-            session.flush()  # This lets Postgres assign an ID automatically
+            session.flush()
 
         # 2. Setup Search
         search = Search(query_text="machine learning", request_limit=5)
@@ -93,13 +98,10 @@ class TestSummary:
             }
         )
 
-        # 5. Assertions
         assert response.status_code == 200
         assert response.json()["total_count"] >= 1
 
     def test_perform_summary_invalid_source(self, client: TestClient) -> None:
-        """Test that requesting a source that doesn't
-        exist returns 0 results gracefully."""
         response = client.post(
             f"{self.BASE_URL}/",
             json={
@@ -109,15 +111,11 @@ class TestSummary:
                 "sources": ["NonExistentSource"]
             }
         )
-
-        # We now expect a success, but with no data found
         assert response.status_code == 200
         assert response.json()["total_count"] == 0
 
     def test_perform_summary_invalid_date_format(self,
                                                  client: TestClient) -> None:
-        """Test that bad date strings
-        trigger a 422 Unprocessable Entity (FastAPI default)."""
         response = client.post(
             f"{self.BASE_URL}/",
             json={
@@ -127,6 +125,4 @@ class TestSummary:
                 "sources": ["Reddit"]
             }
         )
-
-        # FastAPI/Pydantic automatically catches bad datetime strings
         assert response.status_code == 422

@@ -1,8 +1,9 @@
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
+
+from app.core.security import create_access_token, verify_password
 from app.db.session import engine
 from app.models.user import User
-from app.core.security import verify_password, create_access_token
 
 
 class AuthService:
