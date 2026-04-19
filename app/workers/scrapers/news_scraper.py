@@ -20,7 +20,7 @@ class NewsScraper(ParentScraper):
             url = self.build_url(source.base_url, query, lan, region)
             print(f"[NewsScraper] Fetching RSS: {url}")
 
-            raw = await self.fetch_rss(url)
+            raw = await self.fetch_rss(url, source.id)
             parsed: List[Dict[str, Any]] = []
             if raw:
                 parsed = self.parse_rss(raw, source.id)

@@ -80,13 +80,14 @@ class SocialScraper(ParentScraper):
             if source.name == "Reddit":
                 url = self.build_url(source.base_url, "Reddit", query, lan, region)
                 print(f"[SocialScraper] Fetching reddit: {url}")
-                content, _ = await self.load(url)
+                content, _ = await self.load(url, source.id)
                 if content:
                     all_results.extend(self.parse_rss(content, source.id))
 
             elif source.name == "Bluesky":
                 token = await self._login_bsky()
                 url = self.build_url(source.base_url, "Bluesky", query, lan, region)
+                content, _ = await self.load(url, source.id)
                 print(f"[SocialScraper] Fetching bluesky: {url}")
 
                 headers = {
@@ -101,6 +102,8 @@ class SocialScraper(ParentScraper):
                         response = await self.context.request.get(
                             url, headers=headers, timeout=15000
                         )
+                        # Manual log here
+                        self._log_proxy_performance(source.id, response.status)
                         if response.ok:
                             json_text = await response.text()
                             all_results.extend(

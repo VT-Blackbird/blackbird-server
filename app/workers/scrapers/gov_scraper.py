@@ -38,7 +38,9 @@ class GovScraper(ParentScraper):
                 base=source.base_url, query=query, language=lan, region=region
             )
             print(f"[GovScraper] Fetching: {url_}")
-            result: Tuple[Optional[str], Optional[str]] = await self.load(url_)
+            result: Tuple[Optional[str], Optional[str]] = await self.load(
+                url_, source.id
+            )
             content, content_type = result
             
             if not content:
