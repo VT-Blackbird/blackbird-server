@@ -106,15 +106,19 @@ class ParentScraper:
         self.browser = None
         self.curr_proxy = None
 
-    async def goto(self, url: str) -> Optional[str]:
+    async def goto(self, url: str, source_id: int) -> Optional[str]:
         if not self.page or not self.context:
             return None
         temp_page = await self.context.new_page()
         if not temp_page:
             return None
         try:
-            await temp_page.goto(url, wait_until="domcontentloaded", timeout=15000)
+            response = await temp_page.goto(
+                url, wait_until="domcontentloaded", timeout=15000
+            )
             await random_delay()
+            status = response.status if response else 0
+            self._log_proxy_performance(source_id, status)
             html = await temp_page.content()
             return html
         except PlaywrightTimeoutError:
@@ -131,40 +135,47 @@ class ParentScraper:
             statement = select(Source).where(Source.name == name)
             return session.exec(statement).first()
 
-    async def fetch_rss(self, url: str) -> Optional[str]:
+    async def fetch_rss(self, url: str, source_id: int) -> Optional[str]:
         if self.user_agent is None:
             raise RuntimeError("User-Agent not initialized")
         async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(
-                url,
-                headers={
-                    "User-Agent": self.user_agent,
-                    "Accept": "application/rss+xml",
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Referer": "https://news.google.com/",
-                    "Cache-Control": "no-cache",
-                    "Pragma": "no-cache",
-                },
-            )
-            if not resp or not resp.status_code:
-                return None
-            if resp.status_code == 200:
-                return resp.text
+            try:
+                resp = await client.get(
+                    url,
+                    headers={
+                        "User-Agent": self.user_agent,
+                        "Accept": "application/rss+xml",
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Referer": "https://news.google.com/",
+                        "Cache-Control": "no-cache",
+                        "Pragma": "no-cache",
+                    },
+                )
+                status_code = resp.status_code
+                self._log_proxy_performance(source_id, status_code)
+                if status_code == 200:
+                    return resp.text
+            except Exception:
+                self._log_proxy_performance(source_id, 0) # 0 for connection failures
         return None
 
-    async def load(self, url: str) -> Tuple[Optional[str], Optional[str]]:
+    async def load(
+        self, url: str, source_id: int
+    ) -> Tuple[Optional[str], Optional[str]]:
         if self.context:
             try:
                 response = await self.context.request.get(url, timeout=15000)
+                self._log_proxy_performance(source_id, response.status) # log code
                 content_type = response.headers.get("content-type", "")
                 if "xml" in content_type:
                     return await response.text(), "xml"
                 if "text/html" in content_type:
                     return await response.text(), "html"
             except Exception:
+                self._log_proxy_performance(source_id, 0) # Log failure
                 pass
 
-        success: Optional[str] = await self.goto(url)
+        success: Optional[str] = await self.goto(url, source_id) # Pass source_id
         if not success or not self.page:
             return None, None
 
@@ -214,11 +225,11 @@ class ParentScraper:
             f"&hl={lan}&gl={region}&ceid={region}:{lan.split('-')[0]}"
         )
 
-        html, ct = await self.load(html_url)
+        html, ct = await self.load(html_url, source_id)
 
         if not html or ct != "html" or self.is_blocked(html):
             print("HTML blocked → trying Playwright")
-            success = await self.goto(html_url)
+            success = await self.goto(html_url, source_id)
             if success and self.page:
                 html = await self.page.content()
 
@@ -254,12 +265,13 @@ class ParentScraper:
             return entry
 
         async with semaphore:
-            html, ct = await self.load(url)
+            source_id = entry.get("source_id", 0) 
+            html, ct = await self.load(url, source_id)
             if html and ct == "html" and not self.is_blocked(html):
                 entry["content"] = self._extract_article_text(html)
                 return entry
 
-            success = await self.goto(url)
+            success = await self.goto(url, source_id)
             if success and self.page:
                 html = await self.page.content()
                 if html and not self.is_blocked(html):
@@ -387,3 +399,18 @@ class ParentScraper:
         except Exception as e:
             print(f"\t\t GNewsDecoder Error: {e}")
             return None
+
+    def _log_proxy_performance(self, source_id: int, status_code: int) -> None:
+        """Creates a ProxyLog entry if the current proxy has a database ID."""
+        if not self.curr_proxy or self.curr_proxy.get("id") is None:
+            return
+
+        from app.models.proxy import ProxyLog  # Local import to avoid circularity
+        with Session(engine) as session:
+            log = ProxyLog(
+                proxy_id=self.curr_proxy["id"],
+                source_id=source_id,
+                status_code=status_code
+            )
+            session.add(log)
+            session.commit()

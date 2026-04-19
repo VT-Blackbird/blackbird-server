@@ -12,6 +12,7 @@ from typing import List, Optional, TypedDict
 
 
 class ProxyConfig(TypedDict):
+    id: Optional[int]
     server: str
     username: Optional[str]
     password: Optional[str]
@@ -48,6 +49,7 @@ class ProxyManager:
                                            len(self.proxies) -1)]
 
         proxy = ProxyConfig(
+            id=base.get("id"),
             server=base["server"],
             username=base["username"],
             password=base.get("password"),
