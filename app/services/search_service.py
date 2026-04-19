@@ -161,6 +161,18 @@ class SearchService:
                     raw_text = item.get("content", "") or item.get("title", "")
                     if not self.cleaner.is_english(raw_text):
                         continue
+
+                    source_id = int(item.get("source_id", 0))
+                    name_map = get_source_name_map()
+                    source_name = name_map.get(source_id, "")
+
+                    if "Reddit" in source_name:
+                        print("reddit text before cleaning")
+                        print(raw_text)
+                        raw_text = self.cleaner.clean_reddit_content(raw_text)
+                        print("reddit text after cleaning")
+                        print(raw_text)
+
                     item["content"] = self.cleaner.clean(raw_text)
                     temp_items.append(item)
 
