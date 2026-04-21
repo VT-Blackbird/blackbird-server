@@ -243,7 +243,7 @@ class SearchService:
         #Resolve Sentiment Analysis mapping
         sentiment_obj: SentimentScores = SentimentScores(
             label = art.sentiment_label or "",
-            score = art.sentiment_score or -2.0,
+            score = art.sentiment_score or None,
         )
 
         return SearchResultItem(

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 # Define the "Small" parts first so the "Big" parts can use them
 class SentimentScores(BaseModel):
     label: str = Field(..., description="Positive, Negative, or Neutral")
-    score: float = Field(..., description="Intensity score, e.g., 0.95")
+    score: Optional[float] = Field(..., description="Intensity score, e.g., 0.95")
 
 
 class SearchMetrics(BaseModel):
