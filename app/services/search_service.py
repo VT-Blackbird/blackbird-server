@@ -161,8 +161,20 @@ class SearchService:
                     raw_text = item.get("content", "") or item.get("title", "")
                     if not self.cleaner.is_english(raw_text):
                         continue
+
+                    source_id = int(item.get("source_id", 0))
+                    name_map = get_source_name_map()
+                    source_name = name_map.get(source_id, "")
+
+                    print(f"This is the raw text from the source {source_name}")
+                    print(raw_text)
+                    #if "Reddit" in source_name:
+                    #    raw_text = self.cleaner.clean_reddit_content(raw_text)
+
                     item["content"] = self.cleaner.clean(raw_text)
                     temp_items.append(item)
+                    print("Text after cleaning")
+                    print(item["content"])
 
             if temp_items:
                 query_emb = self.model.encode(request.query, convert_to_tensor=True)
