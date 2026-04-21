@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Protocol, Tuple
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 import nltk
 from pysentimiento import create_analyzer
@@ -13,33 +13,35 @@ class NewsSentiment():
         self.tsc = self.load_targeting_model()
 
     def make_inference(
-            self,
-            text: str,
-            threshold: float = 0.5,
-    ) -> Tuple[str, float]:
+        self,
+        text: str,
+        threshold: float = 0.05,
+    ) -> Tuple[str, Optional[float]]: # Updated return type hints
 
         all_sentiment: List[float] = []
         sentences = nltk.sent_tokenize(text)
 
         for sent in sentences:
             pred: SentimentPrediction = self.get_overall_sentiment(sent)
-
-            # confidence = max probability
             confidence = max(pred.probas.values())
 
+            # Only append confident scores
             if confidence >= threshold:
                 label_map = {"NEG": -1.0, "NEU": 0.0, "POS": 1.0}
-                bin = label_map.get(pred.output, 0.0)
-                score:float = pred.probas[pred.output]*bin or -2.0
+                sentiment_bin = label_map.get(pred.output, 0.0)
+                
+                # This score is now guaranteed to be between -1.0 and 1.0
+                score = pred.probas[pred.output] * sentiment_bin
                 all_sentiment.append(score)
 
+        # If no sentences were confident, return None
         if not all_sentiment:
-            return ("NA", -2.0)
+            return ("NA", None) 
 
-        doc_score: float = sum(all_sentiment) / len(all_sentiment)
-
-        label:str = self.update_label(doc_score)
-        print(f"\nSentiment: {all_sentiment}, label: {label}, score: {doc_score}")
+        # The average won't exceed the range of -1.0 to 1.0
+        doc_score = sum(all_sentiment) / len(all_sentiment)
+        label = self.update_label(doc_score)
+        
         return (label, doc_score)
 
     def update_label(
@@ -47,9 +49,7 @@ class NewsSentiment():
             sentiment: float,
             num_classes: int = 5
     ) -> str:
-        if sentiment == -2.0:
-            return "NA"
-        if sentiment is not None and (sentiment > 1 or sentiment < -1):
+        if not sentiment:
             return "NA"
         if num_classes == 3:
             if sentiment < -0.33:

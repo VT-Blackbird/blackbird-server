@@ -188,8 +188,9 @@ class SearchService:
                     score = float(cosine_scores[idx])
                     source_id = int(item.get("source_id", 0))
                     # Sentiment analysis
-                    doc_sentiment:Tuple[str, float] = self.tsa_model.make_inference(
-                        text=item["content"])
+                    doc_sentiment: Tuple[str, Optional[float]] = (
+                        self.tsa_model.make_inference(text=item["content"])
+                    )
                     db_article = Article(
                         title=item.get("title", ""),
                         content=item.get("content", ""),
@@ -255,7 +256,7 @@ class SearchService:
         #Resolve Sentiment Analysis mapping
         sentiment_obj: SentimentScores = SentimentScores(
             label = art.sentiment_label or "",
-            score = art.sentiment_score or -2.0,
+            score = art.sentiment_score or None,
         )
 
         return SearchResultItem(
