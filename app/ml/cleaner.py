@@ -46,7 +46,7 @@ class DataCleaner:
         raw_text = html.unescape(raw_text)
 
         # 2. Parse HTML properly
-        soup = BeautifulSoup(raw_text, "html.parser")
+        soup = BeautifulSoup(raw_text, "lxml")
 
         img_alt = None
         img_title = None
@@ -81,7 +81,7 @@ class DataCleaner:
 
         text = "\n".join(lines)
 
-        # 6. Cleanup (keep your good regex work here)
+        # 6. Cleanup
         text = re.sub(r'\[link\]|\[comments\]', '', text, flags=re.IGNORECASE)
         text = re.sub(r'submitted by\s+\S+', '', text)
         text = re.sub(r'/u/\S+', '', text)

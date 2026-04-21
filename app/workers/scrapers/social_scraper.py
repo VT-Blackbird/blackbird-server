@@ -4,6 +4,7 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional
 
+from app.ml.cleaner import DataCleaner
 from app.models.source import Source
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
@@ -142,6 +143,7 @@ class SocialScraper(ParentScraper):
 
     def parse_rss(self, content: str, source_id: int) -> List[Dict[str, Any]]:
         articles: List[Dict[str, Any]] = []
+        cleaner = DataCleaner()
         try:
             namespaces = {"atom": "http://www.w3.org/2005/Atom"}
             root = ET.fromstring(content)
@@ -155,11 +157,16 @@ class SocialScraper(ParentScraper):
                 if "/comments/" not in url:
                     continue
 
+                raw_content = entry.findtext("atom:content",
+                                             namespaces=namespaces) or ""
+
+                cleaned_content = cleaner.clean_reddit_content(raw_content)
+
                 articles.append(
                     {
                         "source_id": source_id,
                         "title": entry.findtext("atom:title", namespaces=namespaces),
-                        "content": entry.findtext("atom:content", namespaces=namespaces)
+                        "content": cleaned_content
                         or "",
                         "url": url,
                         "published_at": entry.findtext(
