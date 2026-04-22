@@ -124,7 +124,7 @@ To delete the test data, you can run:
 ```bash
 sudo docker compose exec backend python3 -m app.db.populate_test_data --clear
 ```
-### Added quick version of startup commands
+### Quick Start
 Quick start commands for Unix based systems: 
 ```bash 
 sudo docker compose up -d --build
