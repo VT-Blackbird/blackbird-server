@@ -27,8 +27,8 @@ from app.utils.metadata_utils import (
     get_source_name_map,
     get_sources_by_names,
 )
-from app.workers.core.query import Query as ScraperQuery
 from app.utils.workers_utils import load_proxies
+from app.workers.core.query import Query as ScraperQuery
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
 from app.workers.scrapers.social_scraper import SocialScraper
@@ -187,7 +187,10 @@ class SearchService:
                 for idx, item in enumerate(temp_items):
                     score = float(cosine_scores[idx])
                     source_id = int(item.get("source_id", 0))
-                    # Sentiment analysis
+                    if score < 0.05:
+                        # print(f"Skipping {source_id}")
+                        # print(f"Score of {score} is below 0.05")
+                        continue
                     doc_sentiment: Tuple[str, Optional[float]] = (
                         self.tsa_model.make_inference(text=item["content"])
                     )
