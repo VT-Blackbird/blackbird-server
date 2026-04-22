@@ -8,7 +8,7 @@ from app.ml.cleaner import DataCleaner
 from app.models.source import Source
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
-from app.workers.core.utils import save_json
+from app.utils.workers_utils import save_json
 
 
 class SocialScraper(ParentScraper):

@@ -28,7 +28,7 @@ from app.utils.metadata_utils import (
     get_sources_by_names,
 )
 from app.workers.core.query import Query as ScraperQuery
-from app.workers.core.utils import load_proxies
+from app.utils.workers_utils import load_proxies
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
 from app.workers.scrapers.social_scraper import SocialScraper
