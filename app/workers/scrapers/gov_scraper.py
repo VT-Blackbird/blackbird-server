@@ -12,18 +12,21 @@ from app.workers.core.utils import save_json
 
 class GovScraper(ParentScraper):
     def build_url(
-        self, base: str, query: Query, language: str, region: str, page: int = 0
-    ) -> str:
-        params: Dict[str, Any] = {
-            "q": query.text,
-            "hl": language,
-            "gl": region,
-            "ceid": f"{region}:{language.split('-')[0]}",
-        }
-        if page > 0:
-            params["start"] = page * 10
-        query_string = urllib.parse.urlencode(params)
-        return f"{base}{query_string}"
+            self, base: str, query: Query, language: str, region: str, page: int = 0
+        ) -> str:
+            params: Dict[str, Any] = {
+                "hl": language,
+                "gl": region,
+                "ceid": f"{region}:{language.split('-')[0]}",
+            }
+            
+            if page > 0:
+                params["start"] = page * 10
+                
+            query_text_quoted = urllib.parse.quote_plus(query.text)
+            other_params = urllib.parse.urlencode(params)
+            
+            return f"{base}{query_text_quoted}&{other_params}"
 
     async def scrape(
         self, query: Query, lan: str, region: str, sources: List[Source]
