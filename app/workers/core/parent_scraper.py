@@ -16,7 +16,7 @@ from app.models.source import Source
 from app.workers.core.browser_manager import BrowserManager
 from app.workers.core.proxy_manager import ProxyConfig, ProxyManager
 from app.workers.core.query import Query
-from app.workers.core.utils import random_delay, save_json
+from app.workers.core.utils import random_delay
 
 
 # =============================================
@@ -64,7 +64,6 @@ class ParentScraper:
         try:
             results = await self.scrape(query, lan, region, sources)
             if results:
-                await self.save_results(query, results)
                 print(f"Found Results for query: {query.text}")
             else:
                 print(f"No results found for {query.text}")
@@ -186,9 +185,6 @@ class ParentScraper:
     ) -> List[Any]:
         raise NotImplementedError
 
-    @staticmethod
-    async def save_results(query: Any, results: List[Any]) -> None:
-        save_json(results, f"./Query_{query.id}_results.json")
 
     async def scroll_until_stable(
         self,
