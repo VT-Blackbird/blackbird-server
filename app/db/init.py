@@ -9,7 +9,7 @@ from app.db.session import engine
 from app.models import ExtractionMethod, Source, SourceType
 from app.models.proxy import Proxy
 from app.models.user import User
-from app.workers.core.utils import load_proxies
+from app.utils.workers_utils import load_proxies
 
 # Load the .env file explicitly
 load_dotenv()

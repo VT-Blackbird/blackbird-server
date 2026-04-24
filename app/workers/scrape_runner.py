@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Type
 
 from app.models.source import Source, SourceType
 from app.utils.metadata_utils import get_all_sources
+from app.utils.workers_utils import load_proxies
 from app.workers.core.proxy_manager import ProxyConfig
 from app.workers.core.query import Query
-from app.workers.core.utils import load_proxies
 from app.workers.scrapers.gov_scraper import GovScraper
 from app.workers.scrapers.news_scraper import NewsScraper
 from app.workers.scrapers.social_scraper import SocialScraper
