@@ -1,4 +1,5 @@
 import asyncio
+import json
 import traceback
 from datetime import datetime
 from typing import Any, Dict, List, Type
@@ -19,9 +20,9 @@ from app.workers.scrapers.social_scraper import SocialScraper
 QUERIES = [
     # Query(text="Hegseth AND DOW Spending"),
     # Query(text="AFA"),
-    # Query(text="DOW AI"),
+    Query(text="DOW AI")
     # Query(text="Drone CCA")
-    Query(text="Artificial Intelligence")
+    # Query(text="Artificial Intelligence")
 ]
 
 # Pull proxies from Database
@@ -36,6 +37,9 @@ USER_AGENT: str = (
 # -----------------------------
 # Runner
 # -----------------------------
+def save_json(data: Any, filename: str) -> None:
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 async def run_scraper() -> None:
 # 1. Fetch all enabled sources from the database using our new utility
@@ -90,6 +94,8 @@ async def run_scraper() -> None:
                     proxy["region"], 
                     sources
                 )
+                save_json(results, f"{datetime.now().strftime("%c").replace(" ", "_")}"
+                                   f"_{scraper_name}.json")
                 all_results.extend(results or [])
 
             except Exception as e:
@@ -109,5 +115,5 @@ async def run_scraper() -> None:
     print("="*25 + "\n")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     asyncio.run(run_scraper())

@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from bs4 import BeautifulSoup
 
 from app.models.source import Source
-from app.utils.workers_utils import save_json
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 
@@ -20,13 +19,13 @@ class GovScraper(ParentScraper):
                 "gl": region,
                 "ceid": f"{region}:{language.split('-')[0]}",
             }
-            
+
             if page > 0:
                 params["start"] = page * 10
-                
+
             query_text_quoted = urllib.parse.quote_plus(query.text)
             other_params = urllib.parse.urlencode(params)
-            
+
             return f"{base}{query_text_quoted}&{other_params}"
 
     async def scrape(
@@ -66,49 +65,43 @@ class GovScraper(ParentScraper):
 
         return all_results
 
-    @staticmethod
-    async def save_results(query: Query, all_results: List[Dict[str, Any]]) -> None:
-        filename = f"./Query_{query.id}_GovScraper_results.json"
-        save_json(all_results, filename)
-        print(f"[GovScraper] Results saved to {filename}")
-
     def parse_html(self, html: str, source_id: int) -> List[Dict[str, Any]]:
             articles: List[Dict[str, Any]] = []
             soup = BeautifulSoup(html, "lxml")
-            
+
             # Now targeting the React props container
             react_div = soup.select_one('div[data-react-props]')
-            
+
             if react_div:
                 try:
                     props_str = react_div.get('data-react-props', '{}')
                     props = json.loads(props_str)
-                    
+
                     results_list = props.get('resultsData', {}).get('results', [])
-                    
+
                     for r in results_list:
                         title = r.get('title', '')
                         title = title.replace('<strong>', '').replace('</strong>', '')
                         desc = r.get('description', '')
                         desc = desc.replace('<strong>', '').replace('</strong>', '')
-                        
+
                         articles.append({
                             "source_id": source_id,
                             "title": title,
                             "content": desc,
                             "url": r.get('url'),
-                            "published_at": None, 
+                            "published_at": None,
                             "sentiment_label": None,
                             "sentiment_score": None,
                         })
-                    
+
                     if articles:
                         print(
                             f"[GovScraper] Successfully parsed {len(articles)} "
                             "results from React props"
                         )
                         return articles
-                        
+
                 except Exception as e:
                     print(f"[GovScraper] Error parsing React JSON props: {e}")
 
@@ -121,7 +114,7 @@ class GovScraper(ParentScraper):
                 for result in usa_results:
                     title_el = result.select_one(".result-title-label")
                     desc_el = result.select_one(".result-desc p")
-                    url_el = result.select_one(".result-url-text") 
+                    url_el = result.select_one(".result-url-text")
 
                     if not title_el:
                         continue

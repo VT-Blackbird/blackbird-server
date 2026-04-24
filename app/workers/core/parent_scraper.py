@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 
 from app.db.session import engine
 from app.models.source import Source
-from app.utils.workers_utils import random_delay, save_json
+from app.utils.workers_utils import random_delay
 from app.workers.core.browser_manager import BrowserManager
 from app.workers.core.proxy_manager import ProxyConfig, ProxyManager
 from app.workers.core.query import Query
@@ -49,7 +49,6 @@ class ParentScraper:
     # Orchestrates scraping workflow:
     # 1. Sets up browser and proxy
     # 2. Executes scraping logic defined in subclass
-    # 3. Saves results using subclass implementation
     # lan  - language of proxy
     # region - region proxy is based
     async def run(
@@ -64,15 +63,13 @@ class ParentScraper:
         try:
             results = await self.scrape(query, lan, region, sources)
             if results:
-                await self.save_results(query, results)
                 print(f"Found Results for query: {query.text}")
             else:
                 print(f"No results found for {query.text}")
         except Exception as e:
             print(f"received the following exception: {e}")
-        finally:
-            await self.close()
-            return results
+        await self.close()
+        return results
 
     # Setup browser with proxy and user agent
     async def setup(self) -> None:
@@ -186,9 +183,6 @@ class ParentScraper:
     ) -> List[Any]:
         raise NotImplementedError
 
-    @staticmethod
-    async def save_results(query: Any, results: List[Any]) -> None:
-        save_json(results, f"./Query_{query.id}_results.json")
 
     async def scroll_until_stable(
         self,
