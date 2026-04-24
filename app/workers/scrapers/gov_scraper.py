@@ -1,5 +1,4 @@
 import json
-import re
 import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional, Tuple
@@ -98,12 +97,16 @@ class GovScraper(ParentScraper):
                             "title": title,
                             "content": desc,
                             "url": r.get('url'),
+                            "published_at": None, 
                             "sentiment_label": None,
                             "sentiment_score": None,
                         })
                     
                     if articles:
-                        print(f"[GovScraper] Successfully parsed {len(articles)} results from React props")
+                        print(
+                            f"[GovScraper] Successfully parsed {len(articles)} "
+                            "results from React props"
+                        )
                         return articles
                         
                 except Exception as e:
