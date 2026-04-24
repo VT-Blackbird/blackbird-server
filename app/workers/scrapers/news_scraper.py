@@ -2,7 +2,6 @@ import urllib.parse
 from typing import Any, Dict, List
 
 from app.models.source import Source
-from app.utils.workers_utils import save_json
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 
@@ -58,9 +57,3 @@ class NewsScraper(ParentScraper):
         if page > 0:
             params["start"] = page * 10
         return f"{base}{urllib.parse.urlencode(params)}"
-
-    @staticmethod
-    async def save_results(query: Query, results: List[Any]) -> None:
-        filename = f"./Query_{query.id}_NewsScraper_results.json"
-        save_json(results, filename)
-        print(f"[NewsScraper] Results saved to {filename}")

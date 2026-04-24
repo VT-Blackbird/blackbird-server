@@ -6,11 +6,10 @@ from playwright.async_api import Browser, BrowserContext, Playwright, async_play
 from app.workers.core.proxy_manager import ProxyConfig
 
 
-# import asyncio
 class BrowserManager:
     def __init__(self) -> None:
         # chromium browser obj
-        # self.browser: Optional[Browser] = None
+        self.browser: Optional[Browser] = None
         # playwright crawler, manages browser
         self.playwright: Optional[Playwright] = None
 
@@ -23,8 +22,7 @@ class BrowserManager:
         assert self.playwright is not None, "Playwright not initialized."
         launch_args:Dict[str, Any] = {
             "headless": True,
-            "args": [  # look more into these args,
-                # they are meant to make the browser more stealthy
+            "args": [
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
             ],

@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional
 
 from app.ml.cleaner import DataCleaner
 from app.models.source import Source
-from app.utils.workers_utils import save_json
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 
@@ -179,9 +178,3 @@ class SocialScraper(ParentScraper):
         except Exception as e:
             print(f"[SocialScraper] Reddit RSS error: {e}")
         return articles
-
-    @staticmethod
-    async def save_results(query: Query, results: List[Any]) -> None:
-        filename = f"./Query_{query.id}_SocialScraper_results.json"
-        save_json(results, filename)
-        print(f"[SocialScraper] Results saved to {filename}")

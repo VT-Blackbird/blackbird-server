@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import random
-from typing import Any, List, Literal
+from typing import List, Literal
 
 from dotenv import load_dotenv
 from sqlmodel import Session, select
@@ -83,7 +83,3 @@ def load_proxies_from_db() -> List[ProxyConfig]:
 async def random_delay(min_s: float = 1, max_s: float = 3) -> None:
     await asyncio.sleep(random.uniform(min_s, max_s))
 
-
-def save_json(data: Any, filename: str) -> None:
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
