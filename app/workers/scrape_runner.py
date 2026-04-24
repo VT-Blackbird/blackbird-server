@@ -40,8 +40,6 @@ USER_AGENT: str = (
 async def run_scraper() -> None:
 # 1. Fetch all enabled sources from the database using our new utility
     all_sources = get_all_sources(only_enabled=True)
-    # Temporary: remove Social and News
-    all_sources = [s for s in all_sources if s.source_type == SourceType.OFFICIAL]
 
     if not all_sources:
         print("No enabled sources found in database. Did you run the init script?")
