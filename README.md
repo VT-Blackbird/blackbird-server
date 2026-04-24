@@ -3,7 +3,7 @@
 ## Overview
 
 This is the backend server for the **Blackbird** project, built with **FastAPI** and **PostgreSQL**.
-It provides the API endpoints, business logic, and background scraping services needed for the application, using **SQLModel** as the ORM.
+It provides the API endpoints, business logic, sentiment analysis, relevancy score, and background scraping services needed for the application, using **SQLModel** as the ORM.
 
 ---
 
@@ -15,6 +15,8 @@ It provides the API endpoints, business logic, and background scraping services 
 - Automated database initialization and seeding.
 - Environment variable support via `.env`.
 - Dockerized for consistent development and deployment.
+- Query based web scraping. 
+- Calculate sentiment and relevancy score statistics. 
 
 ## Prerequisites
 
@@ -22,10 +24,14 @@ Before running the backend, ensure you have the following installed:
 
 - **Docker Engine** (Linux) or **Docker Desktop** (Windows / Mac)
   - [Install Docker](https://docs.docker.com/get-docker/)
-- **Git Large File Storage**
-  - Linux Command: sudo apt-get install git-lfs
-  - Windows: winget install GitHub.GitLFS
-    - If using wsl, must also install git-lfs within linux shell
+- For Windows, **Install WSL**
+  ```powershell
+      wsl --install
+  ```
+- **Proxies** Not required, but highly recommended
+  - We recommend using [webshare.io](https://www.webshare.io/)
+    - If using webshare.io for proxies, use this [notebook](https://colab.research.google.com/drive/11h7IZ1pFneZYvHI5i5ueLVokznMcCHH5?usp=sharing) to easily convert exported csv file to json for .env file
+
 ---
 
 ## Project Structure
@@ -40,27 +46,43 @@ server/
 │   ├── api/                      # API layer (HTTP interface)
 │   │   └── routes/               # Route definitions / controllers
 │   │
+│   ├── core/                     # Account
+│   │   └── security.py           # Accounts and Security
+│   │
 │   ├── models/                   # SQLModel ORM entities (Table definitions)
 │   │   ├── __init__.py           # Central export for metadata registration
 │   │   ├── search.py             # Search & Link tables
 │   │   ├── source.py             # Scraper source registry & Enums
 │   │   ├── article.py            # Article data & constraints
+│   │   ├── user.py               # User information
 │   │   └── proxy.py              # Proxy management & logs
 │   │
 │   ├── db/                       # Database configuration
 │   │   ├── session.py            # Engine & Session management
+│   │   ├── populate_test_data.py # CLI tool for populating test data
 │   │   ├── init.py               # Table creation & initial seeding
 │   │   └── inspect_data.py       # CLI tool to view table entries
 │   │
 │   ├── ml/                       # Machine Learning/Sentiment analysis 
-│   │   ├── tsa_model_parameters/ # Targeted sentiment analysis parameters
-│   │   ├── targeted_sentiment.py # Sentiment analysis pipeline
+│   │   ├── NewsSentiment.py      # Sentiment analysis pipeline
 │   │   └── cleaner.py            # Relevance score
 │   │
 │   ├── services/                 # Business logic layer
+│   │   ├── auth_service.py       # Authentication service
+│   │   ├── search_service.py     # Produces data for search endpoint
+│   │   └── summary_service.py    # Produces data for summary endpoint
+│   │
 │   ├── workers/                  # Background scrapers (Social/News/Gov)
+│   │   ├── core/                 # Browser, parent, and proxy management 
+│   │   └── scrapers/             # (Social/News/Gov) Scrapers
+│   │
 │   └── utils/                    # Shared helper utilities
+│       ├── workers_utils.py      # Scraping utilities
+│       ├── boolean_utils.py      # Boolean query support
+│       └── metadata_utils.py     # Source helpers 
 │
+├── scripts/                      # Scripts for Git Actions
+├── tests/                        # Testing suite
 ├── docker-compose.yml            # Orchestrates Backend + PostgreSQL
 ├── Dockerfile                    # Backend environment definition
 ├── env_example.txt               # Template for environment variables
@@ -102,6 +124,21 @@ To delete the test data, you can run:
 ```bash
 sudo docker compose exec backend python3 -m app.db.populate_test_data --clear
 ```
+### Quick Start
+Quick start commands for Unix based systems: 
+```bash 
+sudo docker compose up -d --build
+sudo docker compose exec backend python3 -m app.db.init
+sudo docker compose exec backend python3 -m app.db.inspect_data
+```
+Quick start commands for Windows based systems:
+```bash
+wsl
+cd <navigate_to_project_file> 
+docker compose up -d --build
+docker compose exec backend python3 -m app.db.init
+docker compose exec backend python3 -m app.db.inspect_data
+```
 ---
 
 ## Data Persistence & Volumes
@@ -115,20 +152,6 @@ The database uses a Docker volume named `postgres_data` to ensure searches and a
 | `docker compose down -v` | **WIPED**: Deletes the volume and all stored data. |
 
 ---
-## Git Large File Storage Commands
-More information on git-lfs commands can be found in the tutorial [here](https://medium.com/@pablojusue/git-lfs-and-dvc-the-ultimate-guide-to-managing-large-artifacts-in-mlops-c1c926e6c5f4 
-). Git-lfs stores large files as pointers. Once a file is tracked, make sure to add .gitattributes to the commit then you can use git as normal. 
-
-|Action |Command| Notes|
-|-------|--------|------|
-|Add a file to git-lfs | `git lfs track <file-path>` |
-| Add gitattributes to git| `git add .gitattributes`| must commit where tracking info is from 
-|View all files recognized as "tracked"| `git lfs ls-files`|
-|View all patterns you are tracking|`git lfs track`|
-
-
----
-
 ## Quality Standards
 
 - **Ruff**: Enforces PEP 8 and import sorting.

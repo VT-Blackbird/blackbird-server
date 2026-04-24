@@ -13,10 +13,10 @@ from sqlmodel import Session, select
 
 from app.db.session import engine
 from app.models.source import Source
+from app.utils.workers_utils import random_delay, save_json
 from app.workers.core.browser_manager import BrowserManager
 from app.workers.core.proxy_manager import ProxyConfig, ProxyManager
 from app.workers.core.query import Query
-from app.workers.core.utils import random_delay
 
 
 # =============================================
