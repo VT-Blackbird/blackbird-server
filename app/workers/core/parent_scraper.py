@@ -69,9 +69,8 @@ class ParentScraper:
                 print(f"No results found for {query.text}")
         except Exception as e:
             print(f"received the following exception: {e}")
-        finally:
-            await self.close()
-            return results
+        await self.close()
+        return results
 
     # Setup browser with proxy and user agent
     async def setup(self) -> None:
