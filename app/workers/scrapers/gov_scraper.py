@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from bs4 import BeautifulSoup
 
 from app.models.source import Source
+from app.utils.workers_utils import save_json
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
-from app.workers.core.utils import save_json
 
 
 class GovScraper(ParentScraper):
