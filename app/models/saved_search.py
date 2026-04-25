@@ -1,9 +1,11 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import ForeignKey
 from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from .search import Search
+
 
 class SavedSearch(SQLModel, table=True):
     __tablename__ = "saved_search"

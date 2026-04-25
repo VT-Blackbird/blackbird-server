@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, search, summary, saved_search
+from app.api.routes import auth, saved_search, search, summary
 
 app = FastAPI(
     title="Capstone Backend",
@@ -38,4 +38,5 @@ app.include_router(summary.router, prefix="/api/v1/summary", tags=["summary"])
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 
-app.include_router(saved_search.router, prefix="/api/v1/saved_search", tags=["saved_search"])
+app.include_router(saved_search.router, prefix="/api/v1/saved_search",
+                   tags=["saved_search"])

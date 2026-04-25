@@ -1,7 +1,9 @@
-from uuid import UUID
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+from uuid import UUID
+
 from pydantic import BaseModel
+
 
 class SavedSearchResponseItem(BaseModel):
     """Represents a single entry in the user's saved list."""

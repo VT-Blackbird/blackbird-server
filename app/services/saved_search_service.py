@@ -1,17 +1,19 @@
 import uuid
 from typing import List, Optional
-from sqlmodel import Session, select
+
 from sqlalchemy.orm import joinedload
+from sqlmodel import Session, select
 
 from app.models.saved_search import SavedSearch
 from app.models.search import Search
-from app.schemas.saved_search import SavedSearchResponseItem
+from app.schemas.saved_search_response import SavedSearchResponseItem
 
 
 class SavedSearchService:
     def save(
-            self, db: Session, user_id: uuid.UUID, search_id: uuid.UUID, custom_name: Optional[str] = None
-    ) -> SavedSearchResponseItem:
+            self, db: Session, user_id: uuid.UUID, search_id: uuid.UUID,
+            custom_name: Optional[str] = None
+    ) -> SavedSearchResponseItem | None:
         # 1. Verification: Ensure the search actually exists
         db_search = db.get(Search, search_id)
         if not db_search:
@@ -40,7 +42,8 @@ class SavedSearchService:
 
         return self._map_to_response(new_save)
 
-    def get_all_for_user(self, db: Session, user_id: uuid.UUID) -> List[SavedSearchResponseItem]:
+    def get_all_for_user(self, db: Session,
+                         user_id: uuid.UUID) -> List[SavedSearchResponseItem]:
         # We use joinedload to fetch the Search data in the same query (Eager Loading)
         statement = (
             select(SavedSearch)
@@ -52,7 +55,8 @@ class SavedSearchService:
 
         return [self._map_to_response(item) for item in results]
 
-    def delete(self, db: Session, user_id: uuid.UUID, saved_search_id: uuid.UUID) -> bool:
+    def delete(self, db: Session, user_id: uuid.UUID,
+               saved_search_id: uuid.UUID) -> bool:
         statement = select(SavedSearch).where(
             SavedSearch.id == saved_search_id,
             SavedSearch.user_id == user_id
