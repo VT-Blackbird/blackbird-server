@@ -1,10 +1,13 @@
 name: CI Scaffold
 
 on:
-  push:
-    branches: [ production, dev ]
+  # ONLY run on dev when someone proposes a change (PR)
   pull_request:
-    branches: [ production, dev ]
+    branches: [ dev ]
+
+  # ONLY run on production when the merge actually happens
+  push:
+    branches: [ production ]
 
 jobs:
   # NEW JOB: Build once and cache
