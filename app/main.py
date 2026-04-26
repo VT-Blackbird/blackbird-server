@@ -1,9 +1,12 @@
 # server/app/main.py
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
+
 from app.api.routes import auth, saved_search, search, summary
-from dotenv import load_dotenv
+
 load_dotenv()
 app = FastAPI(
     title="Capstone Backend",

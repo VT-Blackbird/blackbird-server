@@ -7,7 +7,7 @@ on:
 
   # ONLY run on production when the merge actually happens
   push:
-    branches: [ production ]
+    branches: [ production, test-deploy-logic ]
 
 jobs:
   # NEW JOB: Build once and cache
@@ -136,7 +136,7 @@ jobs:
   deploy-to-gitlab:
     name: Build & Push to GitLab Registry
     # This 'if' ensures it ONLY runs on the production push, not on dev PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/test-deploy-logic'
     needs: [ quality-assurance, code-coverage ]
     runs-on: ubuntu-latest
     steps:
