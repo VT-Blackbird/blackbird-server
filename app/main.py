@@ -1,22 +1,25 @@
 # server/app/main.py
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, saved_search, search, summary
 
+load_dotenv()
 app = FastAPI(
     title="Capstone Backend",
     description="Backend API for aggregated search and analytics",
     version="0.1.0",
 )
 
+# Get origins from environment, default to localhost for dev
+env_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+
 # Allow CORS for frontend integration (adjust origins as needed)
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-]
+# strips by comma if multiple
+origins = [origin.strip() for origin in env_origins.split(",")]
 
 app.add_middleware(
     CORSMiddleware,

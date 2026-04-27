@@ -30,6 +30,5 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# 8. Command to run FastAPI using uvicorn
-#    This will reload automatically in dev if you mount the code
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 8. Set the Entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
