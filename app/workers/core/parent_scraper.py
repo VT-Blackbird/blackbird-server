@@ -62,6 +62,7 @@ class ParentScraper:
         results: Optional[List[Any]] = None
         try:
             results = await self.scrape(query, lan, region, sources)
+            # results = await self.scrape_with_clicks(query, lan, region, sources)
             if results:
                 print(f"Found Results for query: {query.text}")
             else:

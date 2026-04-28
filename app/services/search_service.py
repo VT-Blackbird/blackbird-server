@@ -179,7 +179,7 @@ class SearchService:
             if temp_items:
                 query_emb = self.model.encode(request.query, convert_to_tensor=True)
                 corpus_texts = [
-                    f"{i['title']} {i['content'][:200]}" for i in temp_items
+                    f"{i['title']} {i['content'][:300]}" for i in temp_items
                 ]
                 corpus_embs = self.model.encode(corpus_texts, convert_to_tensor=True)
                 cosine_scores = util.cos_sim(query_emb, corpus_embs)[0]
@@ -188,8 +188,6 @@ class SearchService:
                     score = float(cosine_scores[idx])
                     source_id = int(item.get("source_id", 0))
                     if score < 0.05:
-                        # print(f"Skipping {source_id}")
-                        # print(f"Score of {score} is below 0.05")
                         continue
                     doc_sentiment: Tuple[str, Optional[float]] = (
                         self.tsa_model.make_inference(text=item["content"])
