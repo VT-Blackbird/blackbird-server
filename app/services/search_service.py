@@ -273,5 +273,17 @@ class SearchService:
             relevance_score=art.relevance_score,
         )
 
+    def delete_search(self, db: Session, search_id: UUID) -> bool:
+        """
+        Deletes a search record. Cascades handle associated Articles and SearchSources.
+        """
+        search = db.get(Search, search_id)
+        if not search:
+            return False
+        
+        db.delete(search)
+        db.commit()
+        return True
+
 # Create a singleton instance to be used by the routes
 search_service = SearchService()
