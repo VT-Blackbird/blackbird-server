@@ -42,7 +42,7 @@ class ParentScraper:
         self.user_agent: Optional[str] = user_agent
         self.MAX_CONCURRENT: int = 10  # max concurrent article fetches
         # max number of articles will try to scrape full article contents from
-        self.MAX_SECONDARY_SCRAPE: int = 25
+        self.MAX_SECONDARY_SCRAPE: int = 10
 
     # Main method to run the scraper, handles setup,
     # scraping, saving results, and cleanup
@@ -62,6 +62,7 @@ class ParentScraper:
         results: Optional[List[Any]] = None
         try:
             results = await self.scrape(query, lan, region, sources)
+            # results = await self.scrape_with_clicks(query, lan, region, sources)
             if results:
                 print(f"Found Results for query: {query.text}")
             else:
