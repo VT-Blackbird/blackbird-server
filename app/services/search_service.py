@@ -1,20 +1,21 @@
 import asyncio
 import hashlib
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple, Type
 from uuid import UUID
 
 from dateutil import parser
 from sentence_transformers import SentenceTransformer, util
 from sqlalchemy.dialects.postgresql import insert
-from sqlmodel import Session, desc, select
+from sqlmodel import Session, delete, desc, select
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.db.session import engine
 from app.ml.cleaner import DataCleaner
 from app.ml.NewsSentiment import NewsSentiment
 from app.models import Article, Search, SearchSource
+from app.models.proxy import ProxyLog
 from app.models.source import Source, SourceType
 from app.schemas.search_request import SearchRequest
 from app.schemas.search_response import (
@@ -80,7 +81,19 @@ class SearchService:
         # Retrieval & Boolean Filtering Path
         results = self._fetch_filtered_articles(search_id, request)
 
+        self._prune_proxy_logs()
+
         execution_time = (time.time() - start_time) * 1000
+
+        # Update finished_at timestamp for the search
+        with Session(engine) as session:
+            db_search = session.get(Search, search_id)
+            if db_search:
+                db_search.finished_at = datetime.now(timezone.utc)
+                finished_time = db_search.finished_at.isoformat()
+                print(f"Search {search_id} finished at {finished_time}")
+                session.add(db_search)
+                session.commit()
 
         # Ensure we return the ID as a UUID object
         return SearchResponse(
@@ -89,6 +102,21 @@ class SearchService:
             execution_time_ms=round(execution_time, 2),
             results=results
         )
+    def _prune_proxy_logs(self) -> None:
+        """
+        Removes ProxyLog entries older than 7 days to maintain table performance.
+        """
+        with Session(engine) as session:
+            try:
+                seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+                # Optional testing statement: older than 1 minute
+                # seven_days_ago = datetime.now(timezone.utc) - timedelta(minutes=1)
+                statement = delete(ProxyLog).where(ProxyLog.timestamp < seven_days_ago)
+                session.exec(statement)
+                session.commit()
+            except Exception as e:
+                print(f"[Maintenance] ProxyLog prune failed: {e}")
+
 
     async def _ingest_new_search(self, request: SearchRequest) -> UUID:
         """Performs full scraping, cleaning, and persistence for a new query."""
