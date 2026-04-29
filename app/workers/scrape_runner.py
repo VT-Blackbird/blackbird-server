@@ -10,18 +10,17 @@ from app.utils.workers_utils import load_proxies
 from app.workers.core.proxy_manager import ProxyConfig
 from app.workers.core.query import Query
 from app.workers.scrapers.gov_scraper import GovScraper
-from app.workers.scrapers.news_scraper import NewsScraper
-from app.workers.scrapers.social_scraper import SocialScraper
 
 # -----------------------------
 # USER CONFIGURATION
 # -----------------------------
 
 QUERIES = [
-    # Query(text="Hegseth AND DOW Spending"),
+    # Query(text="Hegseth AND DOW Spending")
+    # Query(text="Iran")
     # Query(text="AFA"),
-    Query(text="DOW AI")
-    # Query(text="Drone CCA")
+    # Query(text="DOW AI")
+    Query(text="US Air Force in Iran")
     # Query(text="Artificial Intelligence")
 ]
 
@@ -39,7 +38,9 @@ USER_AGENT: str = (
 # -----------------------------
 def save_json(data: Any, filename: str) -> None:
     with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        print("Data is: \n", data)
+
+        json.dump(data, f, indent=2, ensure_ascii=False, default=str)
 
 async def run_scraper() -> None:
 # 1. Fetch all enabled sources from the database using our new utility
@@ -51,8 +52,8 @@ async def run_scraper() -> None:
 
     # 2. Map SourceTypes to the correct Scraper Classes
     scraper_mapping: Dict[SourceType, Type[Any]] = {
-        SourceType.NEWS: NewsScraper,
-        SourceType.SOCIAL: SocialScraper,
+        # SourceType.NEWS: NewsScraper,
+        # SourceType.SOCIAL: SocialScraper,
         SourceType.OFFICIAL: GovScraper
     }
 
@@ -94,8 +95,7 @@ async def run_scraper() -> None:
                     proxy["region"], 
                     sources
                 )
-                save_json(results, f"{datetime.now().strftime("%c").replace(" ", "_")}"
-                                   f"_{scraper_name}.json")
+                save_json(results, f"./{scraper_name}.json")
                 all_results.extend(results or [])
 
             except Exception as e:
