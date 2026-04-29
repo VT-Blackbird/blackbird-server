@@ -7,6 +7,7 @@ from uuid import UUID
 
 from dateutil import parser
 from sentence_transformers import SentenceTransformer, util
+from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, desc, select
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -183,8 +184,10 @@ class SearchService:
                 ]
                 corpus_embs = self.model.encode(corpus_texts, convert_to_tensor=True)
                 cosine_scores = util.cos_sim(query_emb, corpus_embs)[0]
-
+                rows:List[Dict[str, Any]] = []
                 for idx, item in enumerate(temp_items):
+                    if not item.get("url", ""):
+                        continue
                     score = float(cosine_scores[idx])
                     source_id = int(item.get("source_id", 0))
                     if score < 0.05:
@@ -192,19 +195,26 @@ class SearchService:
                     doc_sentiment: Tuple[str, Optional[float]] = (
                         self.tsa_model.make_inference(text=item["content"])
                     )
-                    db_article = Article(
-                        title=item.get("title", ""),
-                        content=item.get("content", ""),
-                        url=item.get("url", ""),
-                        published_at=item.get("published_at"),
-                        search_id=db_search.id,
-                        source_id=source_id,
-                        relevance_score=score,
-                        sentiment_score = doc_sentiment[1],
-                        sentiment_label = doc_sentiment[0],
+                    rows.append({
+                        "title":item.get("title", ""),
+                        "content":item.get("content", ""),
+                        "url":item.get("url", ""),
+                        "published_at":item.get("published_at"),
+                        "search_id":db_search.id,
+                        "source_id":source_id,
+                        "relevance_score":score,
+                        "sentiment_score" : doc_sentiment[1],
+                        "sentiment_label" : doc_sentiment[0]
+                    })
+                if rows:
+                    stmt = insert(Article).values(rows)
+
+                    stmt = stmt.on_conflict_do_nothing(
+                        index_elements=["url", "search_id"]
                     )
-                    session.add(db_article)
-                session.commit()
+
+                    session.execute(stmt)
+                    session.commit()
             
             # The id is now a UUID object
             return db_search.id
