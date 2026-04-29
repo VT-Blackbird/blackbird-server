@@ -1,6 +1,7 @@
 import json
 import urllib.parse
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from bs4 import BeautifulSoup
@@ -9,24 +10,34 @@ from app.models.source import Source
 from app.workers.core.parent_scraper import ParentScraper
 from app.workers.core.query import Query
 
+DateSearchResult = list[tuple[str, datetime]] | None
 
 class GovScraper(ParentScraper):
     def build_url(
-            self, base: str, query: Query, language: str, region: str, page: int = 0
+            self, base: str, query: Query, language: str, region: str
         ) -> str:
             params: Dict[str, Any] = {
                 "hl": language,
                 "gl": region,
                 "ceid": f"{region}:{language.split('-')[0]}",
             }
-
-            if page > 0:
-                params["start"] = page * 10
-
             query_text_quoted = urllib.parse.quote_plus(query.text)
             other_params = urllib.parse.urlencode(params)
 
             return f"{base}{query_text_quoted}&{other_params}"
+    def all_urls(self, base:str, query:Query, language:str, region:str,
+            num_pages: int = 1) ->List[str]:
+        """Creates dict of URLs to load, scrolls through first few pages in USA.gov"""
+        url_base = self.build_url(base, query, language, region)
+        url_list:List[str] = []
+        p = 1
+        while p <= num_pages:
+            if p == 1:
+                url_list.append(url_base)
+            else:
+                url_list.append(f"{url_base}&page={p}")
+            p+=1
+        return url_list
 
     async def scrape(
         self, query: Query, lan: str, region: str, sources: List[Source]
@@ -36,33 +47,34 @@ class GovScraper(ParentScraper):
         for source in sources:
             if not source.is_enabled or source.id is None:
                 continue
+            all_urls: List[str] = self.all_urls(base =source.base_url,
+                                                query=query,
+                                                language=lan,
+                                                region = region,
+                                                num_pages=2)
+            for url_ in all_urls:
+                print(f"[GovScraper] Fetching: {url_}")
+                result: Tuple[Optional[str], Optional[str]] = await self.load(
+                    url_, source.id
+                )
+                content, content_type = result
 
-            url_ = self.build_url(
-                base=source.base_url, query=query, language=lan, region=region
-            )
-            print(f"[GovScraper] Fetching: {url_}")
-            result: Tuple[Optional[str], Optional[str]] = await self.load(
-                url_, source.id
-            )
-            content, content_type = result
-            
-            if not content:
-                print(f"[GovScraper] No content for {source.name}")
-                continue
+                if not content:
+                    print(f"[GovScraper] No content for {source.name}")
+                    continue
 
-            parsed: Optional[List[Dict[str, Any]]] = None
-            if content_type == "html":
-                print("[GovScraper] Parsing HTML content")
-                parsed = self.parse_html(content, source.id)
-            elif content_type == "rss":
-                print("[GovScraper] Parsing RSS content")
-                parsed = self.parse_rss(content, source.id)
-                
-            if parsed:
-                all_results.extend(parsed)
-            elif parsed == []:
-                print(f"[GovScraper] No content found for {source.name}")
+                parsed: Optional[List[Dict[str, Any]]] = None
+                if content_type == "html":
+                    print("[GovScraper] Parsing HTML content")
+                    parsed = self.parse_html(content, source.id)
+                elif content_type == "rss":
+                    print("[GovScraper] Parsing RSS content")
+                    parsed = self.parse_rss(content, source.id)
 
+                if parsed:
+                    all_results.extend(parsed)
+                elif parsed == []:
+                    print(f"[GovScraper] No content found for {source.name}")
         return all_results
 
     def parse_html(self, html: str, source_id: int) -> List[Dict[str, Any]]:
@@ -84,13 +96,13 @@ class GovScraper(ParentScraper):
                         title = title.replace('<strong>', '').replace('</strong>', '')
                         desc = r.get('description', '')
                         desc = desc.replace('<strong>', '').replace('</strong>', '')
-
+                        pub_date: datetime | None = self.parse_date(desc)
                         articles.append({
                             "source_id": source_id,
                             "title": title,
                             "content": desc,
                             "url": r.get('url'),
-                            "published_at": None,
+                            "published_at": pub_date,
                             "sentiment_label": None,
                             "sentiment_score": None,
                         })
@@ -151,3 +163,20 @@ class GovScraper(ParentScraper):
                 }
             )
         return articles
+
+    def _search_dates(self, text: str, settings:Dict[str,
+        List[Any]])-> DateSearchResult:
+        from dateparser.search import search_dates  # type: ignore[import-untyped]
+        return search_dates(text, settings=settings)
+
+    def parse_date(self, content:str)-> datetime | None:
+        time_result = self._search_dates(content[:30].lower(),
+                     settings={'REQUIRE_PARTS': ['month']})
+        if time_result:
+            time = time_result[0][1]
+            # print("Found date in the provided text. ", time)
+            return time
+        else:
+            # print("No date found in the provided text.")
+            return None
+
