@@ -20,7 +20,7 @@ QUERIES = [
     # Query(text="Iran")
     # Query(text="AFA"),
     # Query(text="DOW AI")
-    Query(text="Drone CCA")
+    Query(text="US Air Force in Iran")
     # Query(text="Artificial Intelligence")
 ]
 
@@ -95,7 +95,7 @@ async def run_scraper() -> None:
                     proxy["region"], 
                     sources
                 )
-                save_json(results, f"./4_27_2026_{scraper_name}.json")
+                save_json(results, f"./{scraper_name}.json")
                 all_results.extend(results or [])
 
             except Exception as e:

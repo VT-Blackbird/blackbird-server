@@ -51,7 +51,7 @@ class GovScraper(ParentScraper):
                                                 query=query,
                                                 language=lan,
                                                 region = region,
-                                                num_pages=1)
+                                                num_pages=2)
             for url_ in all_urls:
                 print(f"[GovScraper] Fetching: {url_}")
                 result: Tuple[Optional[str], Optional[str]] = await self.load(
@@ -171,7 +171,7 @@ class GovScraper(ParentScraper):
 
     def parse_date(self, content:str)-> datetime | None:
         time_result = self._search_dates(content[:30].lower(),
-                     settings={'REQUIRE_PARTS': ['month', 'day']})
+                     settings={'REQUIRE_PARTS': ['month']})
         if time_result:
             time = time_result[0][1]
             # print("Found date in the provided text. ", time)
