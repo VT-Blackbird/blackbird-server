@@ -10,6 +10,8 @@ from app.utils.workers_utils import load_proxies
 from app.workers.core.proxy_manager import ProxyConfig
 from app.workers.core.query import Query
 from app.workers.scrapers.gov_scraper import GovScraper
+from app.workers.scrapers.news_scraper import NewsScraper
+from app.workers.scrapers.social_scraper import SocialScraper
 
 # -----------------------------
 # USER CONFIGURATION
@@ -52,8 +54,8 @@ async def run_scraper() -> None:
 
     # 2. Map SourceTypes to the correct Scraper Classes
     scraper_mapping: Dict[SourceType, Type[Any]] = {
-        # SourceType.NEWS: NewsScraper,
-        # SourceType.SOCIAL: SocialScraper,
+        SourceType.NEWS: NewsScraper,
+        SourceType.SOCIAL: SocialScraper,
         SourceType.OFFICIAL: GovScraper
     }
 
