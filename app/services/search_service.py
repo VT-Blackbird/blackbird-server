@@ -81,6 +81,15 @@ class SearchService:
 
         execution_time = (time.time() - start_time) * 1000
 
+        # Update finished_at timestamp for the search
+        with Session(engine) as session:
+            db_search = session.get(Search, search_id)
+            if db_search:
+                db_search.finished_at = datetime.now(timezone.utc)
+                print(f"Search {search_id} finished at {db_search.finished_at.isoformat()}")
+                session.add(db_search)
+                session.commit()
+
         # Ensure we return the ID as a UUID object
         return SearchResponse(
             search_id=search_id,
@@ -207,7 +216,7 @@ class SearchService:
                     )
                     session.add(db_article)
                 session.commit()
-            
+
             # The id is now a UUID object
             return db_search.id
 
