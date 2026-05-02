@@ -3,13 +3,15 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import select
 
 from app.api import deps  # <--- Ensure this points to your get_current_user definition
 from app.main import app
 from app.models.article import Article
 from app.models.user import User
-from app.schemas.search_request import SearchRequest
+from app.schemas.search_request import KeywordFilters, SearchRequest
 from app.services.search_service import search_service
+from app.utils.boolean_utils import apply_boolean_filters
 
 
 # 1. Setup the Mock User
@@ -54,7 +56,8 @@ def test_search_with_invalid_platform() -> None:
 
 def test_search_limit_and_variety() -> None:
     limit = 3
-    payload = {"query": "tech", "limit": limit, "platforms": ["News", "Reddit"]}
+    payload = {"query": "tech", "limit": limit, "platforms": ["Google News",
+                                            "USA.gov", "Reddit", "Bluesky"]}
     response = client.post("/api/v1/search/", json=payload)
     assert response.status_code == 200
     data = response.json()
@@ -94,3 +97,51 @@ async def test_execute_search_full_path(monkeypatch: pytest.MonkeyPatch)\
     payload = SearchRequest(query="test", limit=5, platforms=["News"])
     response = await search_service.execute_search(payload)
     assert len(response.results) > 0
+
+def test_apply_boolean_filters_all_of() -> None:
+    """Tests the AND logic (all_of)."""
+    statement = select(Article)
+    filters = KeywordFilters(all_of=["Virginia", "Tech"], any_of=[], none_of=[])
+
+    filtered_stmt = apply_boolean_filters(statement, filters)
+
+    # Converting to string to verify SQL generation
+    sql_str = str(filtered_stmt)
+    assert "lower(article.title) LIKE lower(:title_1)" in sql_str
+    assert "lower(article.content) LIKE lower(:content_1)" in sql_str
+    # SQLModel/SQLAlchemy uses incremental parameters for multiple 'where' clauses
+    assert "LIKE lower(:title_2)" in sql_str
+
+def test_apply_boolean_filters_any_of() -> None:
+    """Tests the OR logic (any_of)."""
+    statement = select(Article)
+    filters = KeywordFilters(all_of=[], any_of=["Hokies", "Blacksburg"], none_of=[])
+
+    filtered_stmt = apply_boolean_filters(statement, filters)
+    sql_str = str(filtered_stmt)
+
+    # OR logic puts clauses together
+    assert "OR" in sql_str
+    assert "lower(article.title) LIKE lower(:title_1)" in sql_str
+
+def test_apply_boolean_filters_none_of() -> None:
+    """Tests the NOT logic (none_of)."""
+    statement = select(Article)
+    filters = KeywordFilters(all_of=[], any_of=[], none_of=["Spam", "Ad"])
+
+    filtered_stmt = apply_boolean_filters(statement, filters)
+    sql_str = str(filtered_stmt)
+
+    assert "NOT" in sql_str
+    assert "lower(article.title) LIKE lower(:title_1)" in sql_str
+
+def test_apply_boolean_filters_empty_inputs() -> None:
+    """Tests that empty strings or whitespace don't break the query."""
+    statement = select(Article)
+    filters = KeywordFilters(all_of=[" "], any_of=["  "], none_of=["\n"])
+
+    filtered_stmt = apply_boolean_filters(statement, filters)
+    sql_str = str(filtered_stmt)
+
+    # The statement should remain unchanged (no WHERE clauses added)
+    assert "WHERE" not in sql_str

@@ -96,6 +96,8 @@ class SearchService:
                 session.commit()
 
         # Ensure we return the ID as a UUID object
+        print(f"Search Response: {search_id}")
+        print(f"These are the results: {results}")
         return SearchResponse(
             search_id=search_id,
             total_count=len(results),
@@ -133,7 +135,7 @@ class SearchService:
         all_ids = set(s.id for s in all_sources)
         is_full_search = requested_ids == all_ids
 
-        with Session(engine) as session:
+        with (Session(engine) as session):
             db_search = Search(
                 query_text=request.query,
                 request_limit=request.limit,
@@ -187,23 +189,19 @@ class SearchService:
                 for item in platform_output:
                     if not item or not isinstance(item, dict):
                         continue
-                    raw_text = item.get("content", "") or item.get("title", "")
-                    if not self.cleaner.is_english(raw_text):
+                    raw_content = (item.get("content") or "").strip()
+                    raw_title = (item.get("title") or "").strip()
+
+                    content_to_clean = (raw_content if len(raw_content)
+                                                       > 0 else raw_title)
+
+                    item["content"] = self.cleaner.clean(content_to_clean)
+                    item["title"] = self.cleaner.clean(raw_title)
+                    if not self.cleaner.is_english(item["content"]):
                         continue
 
-                    source_id = int(item.get("source_id", 0))
-                    name_map = get_source_name_map()
-                    source_name = name_map.get(source_id, "")
-
-                    print(f"This is the raw text from the source {source_name}")
-                    print(raw_text)
-                    #if "Reddit" in source_name:
-                    #    raw_text = self.cleaner.clean_reddit_content(raw_text)
-
-                    item["content"] = self.cleaner.clean(raw_text)
                     temp_items.append(item)
-                    print("Text after cleaning")
-                    print(item["content"])
+                    print(item["content"][:100])
 
             if temp_items:
                 query_emb = self.model.encode(request.query, convert_to_tensor=True)
@@ -218,6 +216,8 @@ class SearchService:
                         continue
                     score = float(cosine_scores[idx])
                     source_id = int(item.get("source_id", 0))
+
+                    print(f"DEBUG: Article '{item.get('title')[:30]}' - Score: {score}")
                     if score < 0.05:
                         continue
                     doc_sentiment: Tuple[str, Optional[float]] = (
@@ -251,10 +251,17 @@ class SearchService:
         self, search_id: UUID, request: SearchRequest
     ) -> List[SearchResultItem]:
         """Fetches articles for a search_id (UUID) and applies filters."""
+        print(f"\n[DEBUG] Starting retrieval for"
+              f" Search ID: {search_id} (Type: {type(search_id)})")
         with Session(engine) as session:
+            count_stmt = select(Article).where(Article.search_id == search_id)
+            total_before_filters = len(session.exec(count_stmt).all())
+            print(f"[DEBUG] Total articles in DB for"
+                  f" this search_id BEFORE filters: {total_before_filters}")
             statement = select(Article).where(Article.search_id == search_id)
             
             if request.filters:
+                print(f"[DEBUG] Applying filters: {request.filters}")
                 statement = apply_boolean_filters(statement, request.filters)
             
             statement = statement.order_by(desc(Article.relevance_score))
@@ -262,7 +269,10 @@ class SearchService:
             statement = statement.limit(limit)
             
             db_articles = session.exec(statement).all()
-            
+            print(f"[DEBUG] Found {len(db_articles)} articles after"
+                  f" all filters/limits.")
+            if db_articles:
+                print(f"[DEBUG] Sample article title: {db_articles[0].title}")
             return [
                 self._map_article_to_search_result_item(art)
                 for art in db_articles
