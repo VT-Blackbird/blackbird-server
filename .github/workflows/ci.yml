@@ -144,7 +144,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-
+      # 2. Add the metadata helper (exactly like frontend)
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: container.cs.vt.edu/nick24/vt-blackbird/backend
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -162,9 +170,8 @@ jobs:
           file: ./Dockerfile
           push: true
           # Tags: Using the short SHA for versioning and 'latest' for the cluster
-          tags: |
-            container.cs.vt.edu/nick24/vt-blackbird/backend:latest
-            container.cs.vt.edu/nick24/vt-blackbird/backend:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           # We don't necessarily need to write to the cache here
           # since build-and-cache already handled it
